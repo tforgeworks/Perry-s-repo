@@ -27,6 +27,9 @@ All steps run in `scripts/build_cap.py`:
    normals of all flat faces. The front face points up, and the snap clips point down.
 2. **Fit the symmetry.** The cap has D6 symmetry (6 rotations, 6 mirrors). The center
    and a mirror axis are fitted on a top-view thickness map, first coarse, then fine.
+   The fit uses a robust (pseudo-Huber) cost so scan defects do not steer it. A small
+   axis tilt is then removed: after subtracting their D6 average, the top and bottom
+   height maps of a tilted part keep a planar slope, which a robust plane fit measures.
 3. **Voxelize and symmetrize.** The scan is rasterized column by column at 0.15 mm, with
    exact fractional occupancy along z. This is done once for each of the 12 D6 transforms
    of the mesh, and the 12 fields are averaged. Because each transform is applied to
@@ -66,6 +69,22 @@ and an asymmetric 0.1 mm logo. The rebuilt model deviated from the true shape by
 face spread was 0.04 mm on the model vs 0.15 mm on the scan.
 
 ## Verification against the scan
+
+What the numbers mean:
+
+- The model matches the scan to 0.06 mm on average and within 0.16 mm over 95% of
+  the surface. Most of that is scan noise and slight warping of the original part,
+  which the symmetric model does not copy.
+- The maximum (about 2.1 mm) is at scan defects, not model errors. One clip at about
+  240 deg has a patch of missing data, and the inner lip of the scanned cap is
+  slightly out of round (see the symmetry figure below). The model takes the average
+  of all six sectors there.
+- Width and depth match the scan to within 0.3 mm. The model is 0.2 mm shorter
+  (31.25 vs 31.45 mm), because the scanned clip tips are not all at the same height
+  and the model uses their average.
+- Volume is 0.2% under the scan (74,017 vs 74,164 mm3), from the final smoothing.
+- The front face is flat: the logo is gone, and the remaining 0.15 mm spread is the
+  gentle shape of the face itself (the scan's front is warped by about 0.5 mm).
 
 <!-- results:start -->
 | metric | model | scan |
