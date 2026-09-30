@@ -51,6 +51,7 @@ jobs:
         working-directory: wheel-cap
         run: |
           python scripts/verify.py wheel_cap_CAP5372.stl work/scan_aligned.stl --outdir verification
+          python scripts/diagnose.py work/scan_aligned.stl --out verification/symmetry.png
           python scripts/update_readme.py
 
       - uses: actions/upload-artifact@v4

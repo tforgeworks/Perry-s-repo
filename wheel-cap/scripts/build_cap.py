@@ -147,11 +147,12 @@ def align_axis(m):
         z /= np.linalg.norm(z)
     R = frame_from_axis(z)
     V = (m.vertices - ctr) @ R.T
-    # the snap clips hang far below the widest ring (bolt tabs); the dome above is short
+    # the front disc sits at the front end of the cap; the snap clips reach far past
+    # the flange toward the back
     zz = V[:, 2]
     rr = np.hypot(V[:, 0], V[:, 1])
-    zw = np.median(zz[rr > np.percentile(rr, 99.5)])
-    if (zz.max() - zw) > (zw - zz.min()):
+    zc = np.median(zz[rr < 0.3 * rr.max()])
+    if (zz.max() - zc) > (zc - zz.min()):
         R = np.diag([1.0, -1.0, -1.0]) @ R
     return R, ctr
 
