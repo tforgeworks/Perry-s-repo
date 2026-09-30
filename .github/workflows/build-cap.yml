@@ -1,0 +1,72 @@
+name: Build wheel cap STL
+
+on:
+  workflow_dispatch:
+    inputs:
+      res:
+        description: "voxel size in mm"
+        default: "0.15"
+      flip:
+        description: "flip front/back (true/false)"
+        default: "false"
+  push:
+    branches: [main]
+    paths:
+      - "wheel-cap/scripts/**"
+      - ".github/workflows/build-cap.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-cap
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install numpy scipy trimesh scikit-image matplotlib manifold3d fast_simplification rtree
+
+      - name: Download scan
+        run: bash wheel-cap/scripts/get_inputs.sh
+
+      - name: Build STL
+        working-directory: wheel-cap
+        run: |
+          FLIP=""
+          if [ "${{ github.event.inputs.flip }}" = "true" ]; then FLIP="--flip"; fi
+          python scripts/build_cap.py work/Mesh_Gene.stl --out wheel_cap_CAP5372.stl --work work \
+            --res "${{ github.event.inputs.res || '0.15' }}" $FLIP
+
+      - name: Verify against scan
+        working-directory: wheel-cap
+        run: |
+          python scripts/verify.py wheel_cap_CAP5372.stl work/scan_aligned.stl --outdir verification
+          python scripts/update_readme.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-cap
+          path: |
+            wheel-cap/wheel_cap_CAP5372.stl
+            wheel-cap/wheel_cap_CAP5372.build.json
+            wheel-cap/verification/
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add wheel-cap/wheel_cap_CAP5372.stl wheel-cap/wheel_cap_CAP5372.build.json \
+                  wheel-cap/verification wheel-cap/README.md
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m "Build wheel cap STL and verification report [skip ci]"
+          git push
