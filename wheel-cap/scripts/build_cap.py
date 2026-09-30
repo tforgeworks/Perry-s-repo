@@ -157,6 +157,11 @@ def align_axis(m):
     return R, ctr
 
 
+def robust(d, s=0.3):
+    """Pseudo-Huber loss: quadratic below s mm, linear above, so scan defects do not steer the fit."""
+    return s * s * (np.sqrt(1 + (d / s) ** 2) - 1)
+
+
 def fit_symmetry(V, F, h=0.3, span=60.0):
     """Fit the D6 center and mirror axis on a top-view thickness map."""
     grid = make_grid((V.min(0), V.max(0)), h, pad=6)
@@ -180,12 +185,12 @@ def fit_symmetry(V, F, h=0.3, span=60.0):
             dx, dy = px - c[0], py - c[1]
             qx = c[0] + np.cos(t) * dx - np.sin(t) * dy
             qy = c[1] + np.sin(t) * dx + np.cos(t) * dy
-            tot += np.mean((sample(qx, qy) - base) ** 2)
-        return tot
+            tot += np.mean(robust(sample(qx, qy) - base))
+        return tot / 5
 
     c0 = np.array([(T * X).sum(), (T * Y).sum()]) / T.sum()
     res = optimize.minimize(cost_rot, c0, method="Nelder-Mead",
-                            options=dict(xatol=1e-4, fatol=1e-10, initial_simplex=[c0, c0 + [0.5, 0], c0 + [0, 0.5]]))
+                            options=dict(xatol=1e-4, fatol=1e-12, initial_simplex=[c0, c0 + [0.5, 0], c0 + [0, 0.5]]))
     c = res.x
 
     def cost_mir(phi):
@@ -193,16 +198,69 @@ def fit_symmetry(V, F, h=0.3, span=60.0):
         c2, s2 = np.cos(2 * phi), np.sin(2 * phi)
         qx = c[0] + c2 * dx + s2 * dy
         qy = c[1] + s2 * dx - c2 * dy
-        return np.mean((sample(qx, qy) - base) ** 2)
+        return np.mean(robust(sample(qx, qy) - base))
 
     phis = np.radians(np.arange(-span / 2, span / 2, 0.25) if span < 60 else np.arange(0, 60, 0.5))
     costs = [cost_mir(p) for p in phis]
     p0 = phis[int(np.argmin(costs))]
     r2 = optimize.minimize_scalar(cost_mir, bounds=(p0 - np.radians(1), p0 + np.radians(1)), method="bounded",
                                   options=dict(xatol=1e-6))
-    rms0 = np.sqrt(np.mean(base ** 2))
-    return c, r2.x, dict(rot_rel_rms=float(np.sqrt(res.fun / 5) / rms0),
-                         mirror_rel_rms=float(np.sqrt(r2.fun) / rms0))
+    return c, r2.x, dict(rot_cost=float(res.fun), mirror_cost=float(r2.fun))
+
+
+def fit_tilt(V, F, h=0.3):
+    """Small axis tilt from the top and bottom height maps.
+
+    A D6 shape has no first angular harmonic, so after subtracting the D6 average of a
+    height map, a tilted axis leaves a plane z = a x + b y. The plane is fitted with
+    iteratively reweighted least squares so scan defects carry little weight.
+    Returns the axis direction in the current frame.
+    """
+    grid = make_grid((V.min(0), V.max(0)), h, pad=6)
+    occ = rasterize(V, F, grid) > 0.5
+    n, nz = grid["nx"], grid["nz"]
+    has = occ.any(axis=2)
+    top = np.where(has, grid["z0"] + (nz - 1 - np.argmax(occ[..., ::-1], axis=2) + 0.5) * h, np.nan)
+    bot = np.where(has, grid["z0"] + (np.argmax(occ, axis=2) + 0.5) * h, np.nan)
+    coords = grid["x0"] + np.arange(n) * h
+    X, Y = np.meshgrid(coords, coords, indexing="ij")
+    rows, rhs = [], []
+    for M in (top, bot):
+        imgs = []
+        for mir in (1, -1):
+            for k in range(6):
+                t = k * np.pi / 3
+                qx = np.cos(t) * X - np.sin(t) * Y
+                qy = mir * (np.sin(t) * X + np.cos(t) * Y)
+                imgs.append(ndimage.map_coordinates(np.nan_to_num(M, nan=-1e6),
+                                                    [(qx - grid["x0"]) / h, (qy - grid["y0"]) / h],
+                                                    order=0, mode="constant", cval=-1e6))
+        imgs = np.array(imgs)
+        ok = (imgs > -1e5).all(axis=0)
+        d = (M - imgs.mean(axis=0))[ok]
+        rows.append(np.column_stack([X[ok], Y[ok], np.ones(ok.sum())]))
+        rhs.append(d)
+    A = np.concatenate(rows)
+    d = np.concatenate(rhs)
+    w = np.ones_like(d)
+    for _ in range(20):
+        sw = np.sqrt(w)
+        coef = np.linalg.lstsq(A * sw[:, None], d * sw, rcond=None)[0]
+        r = d - A @ coef
+        w = 1 / np.sqrt(1 + (r / 0.2) ** 2)
+    a, b, _ = coef
+    axis = np.array([-a, -b, 1.0])
+    return axis / np.linalg.norm(axis), float(np.degrees(np.arctan(np.hypot(a, b))))
+
+
+def rot_between(u, v):
+    """Smallest rotation taking unit vector u to unit vector v."""
+    w = np.cross(u, v)
+    s, c = np.linalg.norm(w), np.dot(u, v)
+    if s < 1e-12:
+        return np.eye(3)
+    K = np.array([[0, -w[2], w[1]], [w[2], 0, -w[0]], [-w[1], w[0], 0]]) / s
+    return np.eye(3) + s * K + (1 - c) * K @ K
 
 
 # ---------------------------------------------------------------- main
@@ -232,21 +290,27 @@ def main():
     R, ctr = align_axis(m)
     if args.flip:
         R = np.diag([1.0, -1.0, -1.0]) @ R
-    V = (m.vertices - ctr) @ R.T
     F = m.faces
-    c, phi, sym = fit_symmetry(V, F)
-    log(f"symmetry center offset {c}, mirror axis {np.degrees(phi):.3f} deg, residuals {sym}")
-    # second pass at the fitted center for a finer estimate
-    V = V - [c[0], c[1], 0]
-    V = V @ rot_z(-phi).T
-    c2, phi2, sym = fit_symmetry(V, F, h=0.2, span=4.0)
-    V = (V - [c2[0], c2[1], 0]) @ rot_z(-phi2).T
-    log(f"refined: offset {c2}, angle {np.degrees(phi2):.4f} deg, residuals {sym}")
-    info["symmetry_fit"] = sym
+    # pose: aligned = Rt @ v + t
+    Rt, t = R, -R @ ctr
 
-    # full transform: aligned = Rt @ v + t
-    Rt = rot_z(-phi2) @ rot_z(-phi) @ R
-    t = -(rot_z(-phi2) @ (rot_z(-phi) @ (R @ ctr) + [c[0], c[1], 0]) + [c2[0], c2[1], 0])
+    def pose(Rn, tn):
+        return Rn @ Rt, Rn @ t + tn
+
+    V = m.vertices @ Rt.T + t
+    c, phi, sym = fit_symmetry(V, F)
+    Rt, t = pose(rot_z(-phi), -rot_z(-phi) @ [c[0], c[1], 0])
+    log(f"symmetry: center offset {c}, mirror axis {np.degrees(phi):.3f} deg, {sym}")
+    for it in range(2):
+        V = m.vertices @ Rt.T + t
+        axis, tilt = fit_tilt(V, F)
+        Rt, t = pose(rot_between(axis, np.array([0, 0, 1.0])), np.zeros(3))
+        log(f"tilt correction {it + 1}: {tilt:.4f} deg")
+        V = m.vertices @ Rt.T + t
+        c2, phi2, sym = fit_symmetry(V, F, h=0.2, span=4.0)
+        Rt, t = pose(rot_z(-phi2), -rot_z(-phi2) @ [c2[0], c2[1], 0])
+        log(f"refined: offset {c2}, angle {np.degrees(phi2):.4f} deg, {sym}")
+    info["symmetry_fit"] = dict(sym, last_tilt_correction_deg=tilt)
     V = m.vertices @ Rt.T + t
 
     # ---- D6 average
