@@ -1,32 +1,33 @@
 {
   "knob.stl": {
-    "faces": 39734,
+    "faces": 999998,
     "watertight": true,
-    "volume_mm3": 25843.7,
+    "volume_mm3": 26161.4,
     "extents_mm": [
-      57.733,
-      57.733,
-      49.95
+      57.287,
+      57.287,
+      50.95
     ]
   },
   "knob_body.stl": {
-    "faces": 39688,
+    "faces": 999998,
     "watertight": true,
-    "volume_mm3": 25697.7,
+    "volume_mm3": 26049.0,
     "extents_mm": [
-      57.733,
-      57.733,
-      49.95
+      57.287,
+      57.287,
+      49.964
     ]
   },
   "knob_pointer.stl": {
-    "faces": 108,
+    "faces": 20000,
     "watertight": true,
-    "volume_mm3": 146.0,
+    "volume_mm3": 109.4,
     "extents_mm": [
-      14.574,
-      3.8,
-      21.1
+      9.557,
+      22.1,
+      3.2
     ]
-  }
+  },
+  "resolution_mm": 0.08
 }
