@@ -31,9 +31,9 @@ body would lift the front face off the bed.
 | bar pockets | two, open from the back; 2.6 mm side walls, 2.67 mm end walls (curved like the bar ends), 2.75 mm front wall |
 | shaft sleeve | 18.0 mm outside, bore 13.9 mm at the bottom widening to 15.1 mm, 47.3 mm deep, sticks out 10.75 mm past the rim |
 | pointer | raised L-shaped strip, 3.2 mm wide, 1.0 mm proud on the front face (7.1 mm long there), 1.07 to 1.35 mm thick down the end face |
-| pointer block | inside the pointer end of the bar: a lower step (top 3.55 mm above the pocket bottom) and a tall block whose top stands 1.6 mm above the cup floor, with a 2.5 mm wide tip against the skirt and a 1 mm square recess in the block's top where an insert prong comes through |
+| pointer block | inside the pointer end of the bar: a lower step (top 3.55 mm above the pocket bottom) and a tall block whose top stands 1.6 mm above the cup floor, with a 2.5 mm wide tip against the skirt and a 1.1 x 1.1 mm recess in the block's top, running up to the tip's face, where an insert prong comes through |
 | insert features | where the original red insert's prongs show inside the block: a wedge on the lower step that ramps up 1.85 mm and ends in a straight cut (trapezoid profile, 1.9 mm wide), and a narrow flat pad, 0.45 mm wide, 2.3 mm tall and 0.35 mm proud, on the tall block's face |
-| rib | along the bottom of the left pocket, 3.2 mm wide at the top and slightly wider at its base, 4.95 mm tall, sharp edged like the original; at the wall end a 3.8 mm round boss, centred on the rib and just touching the pocket's end wall, whose top slopes from 5.8 mm above the pocket bottom down toward the skirt; next to it a 0.5 mm deep trapezoidal dip in the rib's top |
+| rib | along the bottom of the left pocket, 3.2 mm wide at the top and slightly wider at its base, 4.95 mm tall, sharp edged like the original; at the wall end a 3.8 mm round boss, centred on the rib and just touching the pocket's end wall, whose top slopes from 5.8 mm above the pocket bottom down toward the skirt; next to it a 0.5 mm deep dip in the rib's top, a trapezoid in plan (2.0 mm wide at the boss end, 1.3 mm at the far end) with a gentle ramp on the boss side and a steeper rise at the far end |
 
 ## How it was measured
 

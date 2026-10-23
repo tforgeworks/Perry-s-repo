@@ -68,19 +68,21 @@ BORE_R, BORE_K, BORE_Z_STRAIGHT = 7.0, 0.02074, 3.0   # radius 7.0 at z=-24, dra
 # pointer block at the +x end of the right pocket (x-z steps, |y| <= half-width)
 BLOCK_LOW = dict(x0=15.5, top=-23.2, half_w=4.05)     # lower step
 BLOCK_HIGH = dict(x0=20.5, top=-6.1, half_w=4.05)     # tall block, 1.6 mm above the floor
-BLOCK_TIP = dict(x0=22.9, top=-4.7, half_w=1.25)      # narrow tip against the skirt wall
+BLOCK_TIP = dict(x0=22.7, top=-4.7, half_w=1.25)      # narrow tip against the skirt wall
 # features of the original red insert's prongs, seen inside the pointer block (x, z profiles)
 WEDGE = dict(pts=[(17.1, -23.3), (18.65, -21.35), (19.65, -21.35), (19.65, -23.3)], y=(-1.05, 0.9))
 PAD = dict(pts=[(20.6, -10.2), (20.15, -10.2), (20.15, -7.9), (20.6, -7.9)], y=(-0.225, 0.225))  # flat, on the tall block's face
-SLOT = dict(x=(21.6, 22.6), y=(-0.3, 0.7), bottom=-7.0)   # square recess in the tall block's top
+SLOT = dict(x=(21.6, 22.7), y=(-0.4, 0.7), bottom=-7.0)   # recess in the tall block's top, up to the tip's face
 # rib along the bottom of the left pocket (sharp edged, no fillets, as on the original)
 RIB = dict(x1=-8.5, top=-21.8, half_w=1.6, draft=0.1)   # half-width 1.6 at the top, widening downward
 # round boss at the rib's wall end, centred on the rib and just touching the pocket's end
 # wall; its top slopes down from its high edge toward the skirt
 RIB_END = dict(x=-21.7, y=0.0, r=1.9, z_hi=-20.95, x_hi=-20.0, slope=0.33)
-# trapezoidal dip in the rib's top next to the boss (x, z section), centred on the rib
-RIB_DIP = dict(pts=[(-19.3, -21.5), (-19.0, -21.8), (-18.1, -22.28), (-17.2, -22.28), (-16.6, -21.8), (-16.3, -21.5)],
-               half_w=0.8)
+# dip in the rib's top next to the boss, centred on the rib: in section a gentle ramp down
+# from the boss side, a flat bottom and a steeper rise; in plan a trapezoid, 2.0 mm wide at
+# the boss end narrowing to 1.3 mm at the far end
+RIB_DIP = dict(pts=[(-19.3, -21.5), (-19.0, -21.8), (-18.0, -22.3), (-17.2, -22.3), (-16.7, -21.8), (-16.4, -21.5)],
+               half_w=(1.0, 0.65), x=(-19.0, -16.7))
 
 # red pointer: raised L-shaped strip on the bar's +x end face and front face
 PTR_HALF_W = 1.6
@@ -281,7 +283,9 @@ def fields(x, y, z):
                       drafted(z, e["z_hi"] + e["slope"] * (x - e["x_hi"]), e["slope"]))
     boss = np.maximum(boss, zb - z)
     body = np.minimum(body, np.maximum(np.minimum(rib, boss), x_wall))
-    body = np.maximum(body, -np.maximum(poly2(x, z, RIB_DIP["pts"]), ay - RIB_DIP["half_w"]))
+    (dx0, dx1), (hw0, hw1) = RIB_DIP["x"], RIB_DIP["half_w"]
+    dip_w = hw0 + (hw1 - hw0) * np.clip((x - dx0) / (dx1 - dx0), 0, 1)
+    body = np.maximum(body, -np.maximum(poly2(x, z, RIB_DIP["pts"]), ay - dip_w))
 
     # bore
     rb = BORE_R + BORE_K * (np.minimum(z, BORE_Z_STRAIGHT) + 24.0)
