@@ -1,0 +1,21 @@
+{
+  "scan_to_model": {
+    "mean": 0.388,
+    "median": 0.061,
+    "p90": 0.388,
+    "p95": 1.088,
+    "p99": 9.523,
+    "max": 19.284
+  },
+  "model_to_scan": {
+    "mean": 0.758,
+    "median": 0.109,
+    "p90": 2.612,
+    "p95": 3.772,
+    "p99": 10.362,
+    "max": 15.068
+  },
+  "scan_points": 147813,
+  "share_of_scan_within_0.2mm": 0.8286,
+  "share_of_scan_within_0.5mm": 0.9187
+}
