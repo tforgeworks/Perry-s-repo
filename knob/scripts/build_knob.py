@@ -259,7 +259,7 @@ def fields(x, y, z):
 
     # shaft sleeve
     tube = i_round(r - R_TUBE, z - Z_TUBE, R_TUBE_TOP)
-    tube = np.maximum(tube, (Z_PB - 1.0) - z)
+    tube = np.maximum(tube, (Z_PB - 0.5) - z)   # ends 2.25 mm behind the bar front, out of the fillet's reach
     body = u_round(body, tube, R_TUBE_BASE + (R_TUBE_POCKET - R_TUBE_BASE) * np.clip((Z_PB + 1.75 - z) / 1.0, 0, 1))
 
     # pointer block (stepped, x-z profile) and its narrow tip, rib in the left pocket
