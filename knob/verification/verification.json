@@ -1,21 +1,21 @@
 {
   "scan_to_model": {
-    "mean": 0.344,
+    "mean": 0.345,
     "median": 0.034,
-    "p90": 0.222,
-    "p95": 0.901,
+    "p90": 0.221,
+    "p95": 0.951,
     "p99": 9.523,
     "max": 19.292
   },
   "model_to_scan": {
-    "mean": 0.72,
+    "mean": 0.727,
     "median": 0.082,
-    "p90": 2.62,
-    "p95": 3.753,
-    "p99": 10.16,
-    "max": 14.969
+    "p90": 2.622,
+    "p95": 3.798,
+    "p99": 10.209,
+    "max": 14.952
   },
   "scan_points": 147813,
-  "share_of_scan_within_0.2mm": 0.8924,
-  "share_of_scan_within_0.5mm": 0.9359
+  "share_of_scan_within_0.2mm": 0.8936,
+  "share_of_scan_within_0.5mm": 0.9329
 }

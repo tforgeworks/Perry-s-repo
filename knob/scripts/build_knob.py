@@ -27,6 +27,7 @@ from pathlib import Path
 import fast_simplification
 import numpy as np
 import trimesh
+from scipy.interpolate import CubicSpline
 from skimage import measure
 
 T0 = time.time()
@@ -70,16 +71,16 @@ BLOCK_HIGH = dict(x0=20.5, top=-6.1, half_w=4.05)     # tall block, 1.6 mm above
 BLOCK_TIP = dict(x0=22.9, top=-4.7, half_w=1.25)      # narrow tip against the skirt wall
 # features of the original red insert's prongs, seen inside the pointer block (x, z profiles)
 WEDGE = dict(pts=[(17.1, -23.3), (18.65, -21.35), (19.65, -21.35), (19.65, -23.3)], y=(-1.05, 0.9))
-PAD = dict(pts=[(20.6, -10.2), (20.15, -10.2), (20.15, -7.9), (20.6, -7.9)], y=(-0.9, 0.9))  # flat, on the tall block's face
+PAD = dict(pts=[(20.6, -10.2), (20.15, -10.2), (20.15, -7.9), (20.6, -7.9)], y=(-0.225, 0.225))  # flat, on the tall block's face
 SLOT = dict(x=(21.6, 22.6), y=(-0.3, 0.7), bottom=-7.0)   # square recess in the tall block's top
-TIP_HOLE = dict(x=(23.0, 23.6), y=(-0.35, 0.35), bottom=-6.0)  # hole in the tip's top for the prong
 # rib along the bottom of the left pocket (sharp edged, no fillets, as on the original)
 RIB = dict(x1=-8.5, top=-21.8, half_w=1.6, draft=0.1)   # half-width 1.6 at the top, widening downward
-# sloped shelves in the bottom of the left pocket, on either side of the rib: surface z = z0 + k*(x - x_ref)
-SHELVES = [dict(x=(-14.6, -8.0), y=(1.0, 9.5), z0=-26.1, k=0.2, x_ref=-13.0),
-           dict(x=(-23.6, -17.3), y=(-9.5, -1.0), z0=-26.15, k=-0.08, x_ref=-18.5)]
-# round boss at the rib's wall end; its top slopes down from the rib toward the skirt
-RIB_END = dict(x=-21.85, y=0.3, r=1.75, z_hi=-21.0, x_hi=-20.1, slope=0.23)
+# round boss at the rib's wall end, centred on the rib and just touching the pocket's end
+# wall; its top slopes down from its high edge toward the skirt
+RIB_END = dict(x=-21.7, y=0.0, r=1.9, z_hi=-20.95, x_hi=-20.0, slope=0.33)
+# trapezoidal dip in the rib's top next to the boss (x, z section), centred on the rib
+RIB_DIP = dict(pts=[(-19.3, -21.5), (-19.0, -21.8), (-18.1, -22.28), (-17.2, -22.28), (-16.6, -21.8), (-16.3, -21.5)],
+               half_w=0.8)
 
 # red pointer: raised L-shaped strip on the bar's +x end face and front face
 PTR_HALF_W = 1.6
@@ -96,9 +97,8 @@ PIN_END_Z = -19.0
 # rounds (convex edges) and fillets (concave edges), radius in mm
 R_RIM_OUT = 0.65      # back rim, outer edge
 R_RIM_IN = 0.6        # back rim, inner edge
-R_DISC_EDGE = 0.8     # skirt to the disc front face
-R_BAR_CORNER = 0.9    # bar sides to bar ends
-R_BAR_FRONT = 0.8     # bar sides and ends to the bar front face
+R_OUTER_EDGE = 0.8    # skirt and bar ends to the front faces, bar sides to bar ends
+R_BAR_FRONT = 0.8     # bar sides to the bar front face
 R_BAR_DISC = 1.0      # fillet, bar sides to the disc front face
 R_FLOOR = 0.4         # fillet, cup floor to skirt wall
 R_POCKET = 1.5        # pocket bottoms
@@ -169,13 +169,24 @@ def poly2(u, v, pts):
     return s * np.sqrt(d)
 
 
+_PROFILES = {}
+
+
 def wall_profile(r, z, table, slopes):
-    """Signed distance to the solid r <= R(z) of a revolved wall profile (2D polygon in r, z)."""
-    (z0, r0), (z1, r1) = table[0], table[-1]
-    lo, hi = slopes
-    pts = [(0.0, -80.0), (r0 + lo * (-80.0 - z0), -80.0)] + [(rr, zz) for zz, rr in table]
-    pts += [(r1 + hi * (80.0 - z1), 80.0), (0.0, 80.0)]
-    return poly2(r, z, pts)
+    """Signed distance to the solid r <= R(z) of a revolved wall.
+
+    R(z) is a cubic spline through the measured table, joining the linear extrapolations
+    at both ends with matching slope, so the wall is smooth (no kinks between points)."""
+    key = id(table)
+    if key not in _PROFILES:
+        zt, rt = np.array(table, float).T
+        spl = CubicSpline(zt, rt, bc_type=((1, slopes[0]), (1, slopes[1])))
+        zz = np.arange(zt[0], zt[-1] + 1e-9, 0.05)
+        _PROFILES[key] = (zz, spl(zz), spl(zz, 1), slopes)
+    zz, rr, dr, (lo, hi) = _PROFILES[key]
+    R = np.interp(z, zz, rr) + lo * np.minimum(z - zz[0], 0) + hi * np.maximum(z - zz[-1], 0)
+    k = np.interp(z, zz, dr)
+    return (r - R) / np.sqrt(1 + k * k)
 
 
 def end_arc(x, y, z, s, e):
@@ -204,28 +215,44 @@ def fields(x, y, z):
     fi = wall_profile(r, z, SKIRT_IN, SKIRT_SLOPES["in"])     # inner skirt wall
 
     # outside: skirt with the front disc and back rim, plus the grip bar
-    skirt = i_round(fo, Z_DISC - z, R_DISC_EDGE)
-    skirt = i_round(skirt, z - Z_RIM, R_RIM_OUT)
+    # The side surface is one continuous field: the curved bar ends low down, blending
+    # into the skirt wall over the 2.5 mm below the disc, so the bar's end face runs
+    # smoothly into the skirt with no seam.
+    # The skirt wall applies at and above the disc and beside the bar.
+    def smooth(t):
+        t = np.clip(t, 0, 1)
+        return t * t * (3 - 2 * t)
     ends = np.maximum(end_arc(x, y, z, 1, BAR_END), end_arc(x, y, z, -1, BAR_END))
-    bar = i_round(drafted(ay, W_BAR + K_BAR * (z + 27.5), K_BAR), ends, R_BAR_CORNER)
-    bar = i_round(bar, Z_FRONT - z, R_BAR_FRONT)
-    bar = np.maximum(bar, z - (Z_DISC + 1.0))
-    outer = u_round(skirt, bar, R_BAR_DISC)
+    w_bar = W_BAR + K_BAR * (z + 27.5)
+    w = np.maximum(smooth((z - (Z_DISC - 2.5)) / 2.5), smooth((ay - (w_bar + 0.5)) / 1.0))
+    lateral = w * fo + (1 - w) * ends
+    bar = i_round(drafted(ay, w_bar, K_BAR), Z_FRONT - z, R_BAR_FRONT)
+    front = u_round(Z_DISC - z, bar, R_BAR_DISC)    # disc plus bar, filleted where they meet
+    outer = i_round(lateral, front, R_OUTER_EDGE)
+    outer = i_round(outer, z - Z_RIM, R_RIM_OUT)
 
     # inside: the cup and the two bar pockets as one cavity
     cup = i_round(fi, Z_FLOOR - z, R_FLOOR)
     side = drafted(ay, W_PKT + K_PKT * (z + 24.5), K_PKT)
     end = X_PKT + K_PKT_END * (z + 24.5)
     pockets = None
+    # the pocket ends blend into the cup wall over the last 3 mm below the floor, so the
+    # wall runs on without a step or line
+    w_floor = np.clip((z - (Z_FLOOR - 3.0)) / 3.0, 0, 1)
+    w_floor = w_floor * w_floor * (3 - 2 * w_floor)
+    near_end = None
     for s in (-1, 1):
         p = i_round(side, drafted(end, s * x, K_PKT_END), R_POCKET_CORNER)
-        # above the floor the pocket end steps 0.3 mm inside the cup wall, so the two never coincide
-        pe = end_arc(x, y, z, s, POCKET_END) + 0.3 * np.clip((z - Z_FLOOR + 0.1) / 0.4, 0, 1)
+        pe_arc = end_arc(x, y, z, s, POCKET_END)
+        pe = (1 - w_floor) * pe_arc + w_floor * fi
         p = i_round(p, pe, R_POCKET_END)
         p = i_round(p, Z_PB - z, R_POCKET)
         p = np.maximum(p, z - (Z_FLOOR + 1.5))
         pockets = p if pockets is None else np.minimum(pockets, p)
-    cavity = u_round(cup, pockets, R_POCKET_MOUTH)
+        near_end = pe_arc if near_end is None else np.maximum(near_end, pe_arc)
+    # round the pocket mouths along the sides only; at the ends the pocket wall simply
+    # continues the cup wall
+    cavity = u_round(cup, pockets, R_POCKET_MOUTH * np.clip(-near_end / 1.5, 0, 1))
     body = d_round(outer, cavity, R_RIM_IN)
 
     # shaft sleeve
@@ -246,19 +273,15 @@ def fields(x, y, z):
     for f in (WEDGE, PAD):
         y0, y1 = f["y"]
         body = np.minimum(body, np.maximum(poly2(x, z, f["pts"]), np.abs(y - (y0 + y1) / 2) - (y1 - y0) / 2))
-    for h in (SLOT, TIP_HOLE):
-        body = np.maximum(body, -box3(x, y, z, (h["x"][0], h["y"][0], h["bottom"]), (h["x"][1], h["y"][1], 0.0)))
+    body = np.maximum(body, -box3(x, y, z, (SLOT["x"][0], SLOT["y"][0], SLOT["bottom"]), (SLOT["x"][1], SLOT["y"][1], 0.0)))
     rib = drafted(ay, RIB["half_w"] + RIB["draft"] * (RIB["top"] - z), -RIB["draft"])
     rib = np.maximum(np.maximum(rib, z - RIB["top"]), np.maximum(x - RIB["x1"], zb - z))
-    for sh in SHELVES:
-        top = drafted(z, sh["z0"] + sh["k"] * (x - sh["x_ref"]), sh["k"])
-        footprint = np.maximum(np.maximum(sh["x"][0] - x, x - sh["x"][1]), np.maximum(sh["y"][0] - y, y - sh["y"][1]))
-        rib = np.minimum(rib, np.maximum(np.maximum(top, zb - z), footprint))
     e = RIB_END
     boss = np.maximum(np.hypot(x - e["x"], y - e["y"]) - e["r"],
                       drafted(z, e["z_hi"] + e["slope"] * (x - e["x_hi"]), e["slope"]))
     boss = np.maximum(boss, zb - z)
     body = np.minimum(body, np.maximum(np.minimum(rib, boss), x_wall))
+    body = np.maximum(body, -np.maximum(poly2(x, z, RIB_DIP["pts"]), ay - RIB_DIP["half_w"]))
 
     # bore
     rb = BORE_R + BORE_K * (np.minimum(z, BORE_Z_STRAIGHT) + 24.0)

@@ -27,14 +27,13 @@ body would lift the front face off the bed.
 | overall height | 49.95 mm (bar front to the back end of the shaft sleeve) |
 | skirt height | 20.1 mm (front disc to back rim) |
 | grip bar | 20.8 mm wide at the front, 24.3 mm where it meets the disc (5.2 deg draft), 19.1 mm tall |
-| bar ends | curved in plan: nearly flat at the bar's front face (about 100 mm radius), getting rounder toward the disc, where they match the skirt (about 27 mm radius); 51.2 mm long at the front |
+| bar ends | curved in plan: nearly flat at the bar's front face (about 100 mm radius), getting rounder toward the disc, where they blend smoothly into the skirt (about 27 mm radius); 51.2 mm long at the front |
 | bar pockets | two, open from the back; 2.6 mm side walls, 2.67 mm end walls (curved like the bar ends), 2.75 mm front wall |
 | shaft sleeve | 18.0 mm outside, bore 13.9 mm at the bottom widening to 15.1 mm, 47.3 mm deep, sticks out 10.75 mm past the rim |
 | pointer | raised L-shaped strip, 3.2 mm wide, 1.0 mm proud on the front face (7.1 mm long there), 1.07 to 1.35 mm thick down the end face |
-| pointer block | inside the pointer end of the bar: a lower step (top 3.55 mm above the pocket bottom) and a tall block whose top stands 1.6 mm above the cup floor, with a 2.5 mm wide tip against the skirt; a 1 mm square recess in the block's top and a 0.6 x 0.7 mm hole in the tip's top where the insert's prongs come through |
-| insert features | where the original red insert's prongs show inside the block: a wedge on the lower step that ramps up 1.85 mm and ends in a straight cut (trapezoid profile, 1.9 mm wide), and a flat 1.8 x 2.3 mm pad, 0.35 mm proud, on the tall block's face |
-| rib | along the bottom of the left pocket, 3.2 mm wide at the top and slightly wider at its base, 4.95 mm tall, sharp edged like the original; at the wall end a 3.5 mm round boss whose top slopes from 5.75 mm above the pocket bottom down to the rib's height at the skirt |
-| shelves | two sloped shelves in the bottom of the left pocket, on opposite sides of the rib: one steps up 0.4 mm and ramps up toward the sleeve, the other steps up 0.65 mm and ramps up toward the wall |
+| pointer block | inside the pointer end of the bar: a lower step (top 3.55 mm above the pocket bottom) and a tall block whose top stands 1.6 mm above the cup floor, with a 2.5 mm wide tip against the skirt and a 1 mm square recess in the block's top where an insert prong comes through |
+| insert features | where the original red insert's prongs show inside the block: a wedge on the lower step that ramps up 1.85 mm and ends in a straight cut (trapezoid profile, 1.9 mm wide), and a narrow flat pad, 0.45 mm wide, 2.3 mm tall and 0.35 mm proud, on the tall block's face |
+| rib | along the bottom of the left pocket, 3.2 mm wide at the top and slightly wider at its base, 4.95 mm tall, sharp edged like the original; at the wall end a 3.8 mm round boss, centred on the rib and just touching the pocket's end wall, whose top slopes from 5.8 mm above the pocket bottom down toward the skirt; next to it a 0.5 mm deep trapezoidal dip in the rib's top |
 
 ## How it was measured
 
@@ -46,10 +45,10 @@ body would lift the front face off the bed.
 3. In that frame every surface was measured on the scan: the skirt's wall profile (it
    is not one cone: about 5 deg of draft low down, curving into a straight band near the
    rim), the bar and pocket walls (both drafted), the curved bar and pocket ends, the cup
-   floor, the pocket bottoms and shelves, the sleeve and bore, the blocks and the rib,
+   floor, the pocket bottoms, the sleeve and bore, the blocks and the rib,
    and the pointer.
 4. `scripts/build_knob.py` builds the knob from those numbers as exact solids (revolved
-   wall profiles, drafted slabs, curved end surfaces, planes, cylinders, boxes) joined
+   wall profiles following a smooth spline through the measured points, drafted slabs, curved end surfaces, planes, cylinders, boxes) joined
    with rounded booleans, which give true circular fillets and edge rounds where faces
    meet. The result is meshed at 0.08 mm, so walls are flat and true, without scan noise.
 5. The model was then laid over the scan and every place where they disagree by more
@@ -66,9 +65,8 @@ body would lift the front face off the bed.
 | pocket corners at the skirt end | 1.0 mm |
 | sleeve to the cup floor and up the pocket ends | 1.0 mm |
 | bar sides to the front disc | 1.0 mm |
-| bar sides to bar ends | 0.9 mm |
-| skirt to the disc front face | 0.8 mm |
-| bar sides and ends to the bar front | 0.8 mm |
+| skirt to the disc front face, bar ends to the bar front, bar sides to bar ends | 0.8 mm |
+| bar sides to the bar front | 0.8 mm |
 | blocks to the pocket faces and skirt wall | 0.8 mm |
 | block edges | 0.6 mm |
 | pocket openings in the cup floor | 0.5 mm |
@@ -78,13 +76,13 @@ body would lift the front face off the bed.
 | sleeve end, both edges | 0.4 mm |
 | pointer edges | 0.3 mm, 1.0 mm outer radius over the bend |
 
-The rib, its end boss and the shelves in the left pocket, the wedge, the pad and the two
-holes keep sharp edges, as on the original.
+The rib with its end boss and dip in the left pocket, the wedge, the pad and the square recess
+keep sharp edges, as on the original.
 
 ## Accuracy
 
 The model matches the scan surface to **0.03 mm median**; 89% of the scan lies within
-0.2 mm of the model and 94% within 0.5 mm. Per feature, the median offset between scan
+0.2 mm of the model and 93% within 0.5 mm. Per feature, the median offset between scan
 and model:
 
 | feature | median offset | feature | median offset |
