@@ -1,13 +1,23 @@
-"""Sculpt the viper that coils around the handguard and fuse it to the CAD body.
+"""Sculpt the removable viper that slides onto the handguard.
 
 The snake is a signed distance field (SDF): a swept body along a centreline that
 weaves under the handguard from side to side, keeled overlapping scales displaced
-onto it, and a viper head with an open mouth at the muzzle end. The field is
-meshed with marching cubes in slabs, then unioned with the handguard.
+onto it, and a viper head with a gaping mouth at the muzzle end. The field is
+meshed with marching cubes in slabs.
+
+The snake is a separate part. Its inside is cut to the handguard's outer envelope
+plus a running clearance, so it slides on from the muzzle end and wraps about 230
+degrees around the handguard: it cannot lift off, and the flats and the rail stop it
+from turning. It comes in two pieces that each fit a 256 mm bed:
+  * rear piece (tail and first coils): stops against the step where the keymod
+    flats start (X = 63), and is held there by the front piece
+  * front piece (coils and head): the head's inner wall stops against the
+    handguard's muzzle end, and an M5 set screw through the top of the head
+    (heat-set insert) drops into the last rail slot to lock it
 
 Keep-outs (the snake never enters them):
-  * the Picatinny rail and the space above it, so the full rail stays usable
-  * the bore, and a 31 mm passage through the head for the barrel and muzzle device
+  * the Picatinny rail and the space above it, so the rail stays usable up to the head
+  * a 31 mm passage through the head for the barrel and muzzle device
   * the rear clamp (cross bolts, centre screw, slit) and the receiver end
 """
 import argparse
@@ -17,7 +27,7 @@ import time
 
 import numpy as np
 import trimesh
-from manifold3d import Manifold, Mesh
+from manifold3d import CrossSection, JoinType, Manifold, Mesh
 from scipy.spatial import cKDTree
 from skimage.measure import marching_cubes
 
@@ -27,24 +37,35 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 # ------------------------------------------------------------------ body path
 R_SURF = 19.4      # where the belly rests (tube radius, a little into the flats)
-EMBED = 0.35       # fraction of the body radius sunk into the handguard
-R_BODY = 8.5       # body radius
+EMBED = 0.3        # fraction of the body radius below the handguard surface (cut off as the belly)
+R_BODY = 9.0       # body radius
 WAVE_X0, WAVE_X1 = 60.0, 360.0
 WAVE_LAMBDA = 100.0
 WAVE_AMP = 115.0   # degrees either side of the bottom; peaks at 65 deg from top
 TAIL_X0 = 8.0
 
+# fit to the handguard
+CLEARANCE = 0.35   # running clearance between the snake and the handguard
+STEP_X = HG.PANEL_X + 0.2  # the rear piece stops on the step where the keymod flats start
+
 # head (X of the handguard's muzzle end is HG.X_END = 387.4)
-HEAD_BACK = 374.0  # first X the head may occupy (the last rail slot ends at 373.3)
+HEAD_BACK = 365.0  # first X the head occupies; covers rail slot 37 (centre 370.7) only
 PASSAGE_R = 15.5   # clear radius around the bore axis through the head (31 mm)
+HINGE = (388.0, 6.0)          # corner of the gape (X, Z)
+GAPE_UP = (444.0, 21.0)       # front of the palate
+GAPE_DOWN = (440.0, -25.0)    # front of the lower jaw's top line
+LOCK_X = HG.RAIL_SLOT_X0 + (HG.RAIL_SLOTS - 1) * HG.RAIL_PITCH  # set screw into the last rail slot
+LOCK_SCREW_D = 5.3            # clearance for an M5 set screw
+LOCK_INSERT_D = 6.4           # M5 heat-set insert hole
+LOCK_INSERT_L = 6.0             # short M5 insert (M5 x 5.8)
 
 # scales
-SCALE_N = 20             # scales around the body
-SCALE_ROW = 2.7          # mm between scale rows along the body
-SCALE_DEPTH = 0.55       # groove depth
-KEEL_H = 0.25            # keel ridge height
-HEAD_CELL = 3.0          # head scale size
-HEAD_DEPTH = 0.45
+SCALE_N = 16             # scales around the body
+SCALE_ROW = 3.3          # mm between scale rows along the body
+SCALE_DEPTH = 0.7        # groove depth
+KEEL_H = 0.3             # keel ridge height
+HEAD_CELL = 4.2          # head scale size
+HEAD_DEPTH = 0.65
 
 
 def smoothstep(e0, e1, x):
@@ -65,18 +86,18 @@ def smax(a, b, k):
 def centreline(step=0.1):
     """Dense samples of the body centreline from tail tip to the neck."""
     xs, ths, extra = [], [], []
-    # tail along the +Y side of the rear tube, rising slightly toward the first coil
+    # tail along the left (+Y) side of the rear tube, rising slightly toward the first coil
     x = np.arange(TAIL_X0, WAVE_X0, step)
     t = (x - TAIL_X0) / (WAVE_X0 - TAIL_X0)
     xs.append(x); ths.append(88 - 23 * smoothstep(0, 1, t)); extra.append(np.zeros_like(x))
-    # coils: weave under the handguard between 65 deg right and 65 deg left of the top
+    # coils: weave under the handguard between 65 deg left and 65 deg right of the top
     x = np.arange(WAVE_X0, WAVE_X1, step * 0.25)
     xs.append(x); ths.append(180 - WAVE_AMP * np.cos(2 * np.pi * (x - WAVE_X0) / WAVE_LAMBDA))
     extra.append(np.zeros_like(x))
-    # neck: run forward along the right side and lift into the head's cheek
-    x = np.arange(WAVE_X1, 393.0, step)
-    t = (x - WAVE_X1) / (393.0 - WAVE_X1)
-    xs.append(x); ths.append(65 - 5 * smoothstep(0, 1, t)); extra.append(4.0 * smoothstep(0.3, 1, t))
+    # neck: run forward along the left side and lift into the back of the head
+    x = np.arange(WAVE_X1, 392.0, step)
+    t = (x - WAVE_X1) / (392.0 - WAVE_X1)
+    xs.append(x); ths.append(65 - 10 * smoothstep(0, 1, t)); extra.append(5.0 * smoothstep(0.2, 1, t))
     x = np.concatenate(xs); th = np.radians(np.concatenate(ths)); lift = np.concatenate(extra)
     # resample uniformly in arc length
     s_raw = np.r_[0, np.cumsum(np.linalg.norm(np.diff(np.c_[x, 25 * np.sin(th), 25 * np.cos(th)], axis=0), axis=1))]
@@ -92,9 +113,9 @@ def radius_profile(s):
     L = s[-1] if np.ndim(s) else s
     r = np.full_like(s, R_BODY)
     tail = 150.0
-    r = np.where(s < tail, 1.0 + (R_BODY - 1.0) * smoothstep(0, 1, s / tail) ** 0.8, r)
+    r = np.where(s < tail, 1.2 + (R_BODY - 1.2) * smoothstep(0, 1, s / tail) ** 0.8, r)
     neck0 = L - 70.0
-    r = np.where(s > neck0, R_BODY - 1.3 * smoothstep(neck0, L - 20, s), r)
+    r = np.where(s > neck0, R_BODY - 1.5 * smoothstep(neck0, L - 20, s), r)
     return r
 
 
@@ -167,13 +188,13 @@ class Body:
 
 
 # ------------------------------------------------------------------ head SDF
-def ellipsoid(P, c, r, pitch_deg=0.0):
+def ellipsoid(P, c, r, yaw_deg=0.0):
     Q = P - np.asarray(c)
-    if pitch_deg:
-        a = np.radians(pitch_deg)  # rotate about Y: +pitch lifts the front (+X) end
-        x = Q[:, 0] * np.cos(a) + Q[:, 2] * np.sin(a)
-        z = -Q[:, 0] * np.sin(a) + Q[:, 2] * np.cos(a)
-        Q = np.c_[x, Q[:, 1], z]
+    if yaw_deg:
+        a = np.radians(yaw_deg)  # rotate about Z
+        x = Q[:, 0] * np.cos(a) + Q[:, 1] * np.sin(a)
+        y = -Q[:, 0] * np.sin(a) + Q[:, 1] * np.cos(a)
+        Q = np.c_[x, y, Q[:, 2]]
     r = np.asarray(r, float)
     k0 = np.linalg.norm(Q / r, axis=1)
     k1 = np.linalg.norm(Q / (r * r), axis=1)
@@ -187,55 +208,81 @@ def capsule(P, a, b, ra, rb):
     return np.linalg.norm(pa - h[:, None] * ba, axis=1) - (ra + (rb - ra) * h)
 
 
+def polycapsule(P, pts, radii):
+    return np.minimum.reduce([capsule(P, pts[i], pts[i + 1], radii[i], radii[i + 1]) for i in range(len(pts) - 1)])
+
+
 def mirror_y(fn, P):
     Q = P.copy(); Q[:, 1] = np.abs(Q[:, 1])
     return fn(Q)
 
 
+def loft(P, xs, w, c, h, n=2.5, k=3.0):
+    """Superellipse cross-sections (half-width w, centre height c, half-height h)
+    interpolated along X between xs[0] and xs[-1], with rounded end caps."""
+    X = P[:, 0]
+    W = np.interp(X, xs, w); Cz = np.interp(X, xs, c); H = np.interp(X, xs, h)
+    q = (np.abs(P[:, 1] / W) ** n + np.abs((P[:, 2] - Cz) / H) ** n) ** (1.0 / n)
+    d = (q - 1.0) * np.minimum(W, H)
+    return smax(smax(d, xs[0] - X, k), X - xs[-1], k)
+
+
+def gape_lines(X):
+    """Z of the palate (upper) and of the lower jaw's top (lower) at X."""
+    hx, hz = HINGE
+    up = hz + (X - hx) * (GAPE_UP[1] - hz) / (GAPE_UP[0] - hx)
+    lo = hz + (X - hx) * (GAPE_DOWN[1] - hz) / (GAPE_DOWN[0] - hx)
+    return up, lo
+
+
 def head_parts(P):
     X = P[:, 0]
-    # collar: elliptic sleeve over the last 13 mm of the handguard
-    grow = 0.85 + 0.15 * smoothstep(HEAD_BACK, HEAD_BACK + 12.0, X)
-    ell = np.sqrt((P[:, 1] / (25.0 * grow)) ** 2 + ((P[:, 2] - 6.0) / (31.0 * grow)) ** 2)
-    collar = (ell - 1.0) * 25.0
-    collar = smax(collar, HEAD_BACK + 0.5 - X, 1.0)
-    collar = smax(collar, X - 400.0, 4.0)
-    skull = ellipsoid(P, (402, 0, 24), (25, 23, 14.5))
-    snout = ellipsoid(P, (425, 0, 26), (14, 14.5, 8.5), pitch_deg=10)
-    cheeks = mirror_y(lambda Q: ellipsoid(Q, (397, 17, 2), (15, 9.5, 26)), P)
-    jaw = ellipsoid(P, (411, 0, -24), (25, 18, 6.5), pitch_deg=-14)
-    head = smin(collar, skull, 5.0)
-    head = smin(head, snout, 4.0)
-    head = smin(head, cheeks, 5.0)
-    head = smin(head, jaw, 4.0)
-    brows = mirror_y(lambda Q: ellipsoid(Q, (411, 13.5, 34), (10, 6, 3.6), pitch_deg=-8), P)
-    head = smin(head, brows, 2.0)
-    # mouth: wide gape, plus the barrel / muzzle device passage
-    mouth = ellipsoid(P, (434, 0, 1.5), (33, 29, 18.5))
-    passage = np.hypot(P[:, 1], P[:, 2]) - PASSAGE_R
-    passage = np.where(X > HG.X_END - 0.5, passage, 1e3)
-    hollow = smin(mouth, passage, 2.0)
+    up, lo = gape_lines(X)
+    # back of the head: wraps the handguard's muzzle end, widest at the jaw angles
+    back = loft(P, [HEAD_BACK, 380, 392, 402], [22.0, 26.0, 29.0, 26.0], [9.5, 9.5, 9.5, 11.0],
+                [31.0, 31.0, 30.0, 25.0], n=2.4, k=6.0)
+    # upper head: flat-topped wedge from the jaw angles to a rounded snout
+    upper = loft(P, [384, 400, 425, 440, 447], [28.0, 26.0, 18.0, 11.5, 6.5],
+                 [24.0, 25.0, 25.5, 25.0, 24.5], [15.0, 13.5, 9.0, 6.5, 4.0], n=2.7, k=3.0)
+    # lower jaw: drops from the hinge to a narrow chin
+    lower = loft(P, [384, 400, 425, 441, 444], [25.0, 23.0, 14.0, 7.5, 4.5],
+                 [-6.0, -11.0, -21.5, -28.5, -29.5], [9.0, 7.5, 5.5, 4.5, 3.5], n=2.6, k=2.5)
+    head = smin(back, upper, 5.0)
+    head = smin(head, lower, 4.0)
+    # venom-gland bulges behind the jaw angles, and the brow plates over the eyes
+    glands = mirror_y(lambda Q: ellipsoid(Q, (392, 25.5, 12), (12, 6, 11)), P)
+    head = smin(head, glands, 4.0)
+    brows = mirror_y(lambda Q: ellipsoid(Q, (412, 16.5, 36.0), (11.5, 5.2, 3.0), yaw_deg=12), P)
+    head = smin(head, brows, 1.5)
+    canthus = mirror_y(lambda Q: capsule(Q, (418, 15.0, 35.0), (442, 7.0, 30.5), 2.0, 1.2), P)
+    head = smin(head, canthus, 2.0)
+    # the gape: open between the palate line and the lower jaw line, ahead of the hinge
+    mouth = smax(smax(HINGE[0] - X, P[:, 2] - up, 1.0), lo - P[:, 2], 1.0)
+    passage = np.where(X > HG.X_END - 0.5, np.hypot(P[:, 1], P[:, 2]) - PASSAGE_R, 1e3)
+    hollow = smin(mouth, passage, 3.0)
     head = smax(head, -hollow, 1.5)
-    # eye sockets and eyes with slit pupils
-    sockets = mirror_y(lambda Q: ellipsoid(Q, (412, 16.5, 29.5), (5.4, 4.2, 5.0)), P)
+    # eyes under the brows, with slit pupils; each eye overlaps the back of its socket so it stays attached
+    sockets = mirror_y(lambda Q: np.linalg.norm(Q - np.array([411.0, 20.3, 31.0]), axis=1) - 4.6, P)
     head = smax(head, -sockets, 0.8)
-    eyes = mirror_y(lambda Q: np.linalg.norm(Q - np.array([412.5, 15.6, 29.5]), axis=1) - 4.3, P)
-    pupils = mirror_y(lambda Q: ellipsoid(Q, (412.5, 19.9, 29.5), (0.55, 0.9, 2.9)), P)
+    eyes = mirror_y(lambda Q: np.linalg.norm(Q - np.array([411.0, 19.4, 31.0]), axis=1) - 4.3, P)
+    pupils = mirror_y(lambda Q: ellipsoid(Q, (411.0, 23.7, 31.0), (0.5, 0.8, 2.8)), P)
     eyes = np.maximum(eyes, -pupils)
-    nostrils = mirror_y(lambda Q: np.linalg.norm(Q - np.array([436.0, 5.0, 28.5]), axis=1) - 1.4, P)
+    nostrils = mirror_y(lambda Q: np.linalg.norm(Q - np.array([443.5, 5.0, 27.5]), axis=1) - 1.4, P)
     head = smax(head, -nostrils, 0.5)
-    # fangs (stay outside the passage) and small teeth
-    fangs = mirror_y(lambda Q: np.minimum(capsule(Q, (423.5, 12.6, 21.5), (427.5, 13.3, 14.5), 2.3, 1.4),
-                                          capsule(Q, (427.5, 13.3, 14.5), (430.5, 13.6, 9.5), 1.4, 0.45)), P)
-    lowfangs = mirror_y(lambda Q: capsule(Q, (421.0, 12.0, -24.0), (426.5, 13.4, -11.5), 2.0, 0.45), P)
+    # long curved fangs at the front of the upper jaw, short ones at the chin;
+    # every tip stays outside the passage
+    fangs = mirror_y(lambda Q: polycapsule(Q, [(434.5, 11.0, 22.0), (437.5, 12.4, 15.5), (440.0, 13.6, 8.6)],
+                                           [2.3, 1.5, 0.45]), P)
+    lowfangs = mirror_y(lambda Q: polycapsule(Q, [(430.0, 9.0, -22.5), (432.0, 10.8, -16.5), (433.5, 12.0, -12.0)],
+                                              [1.9, 1.2, 0.45]), P)
     detail = np.minimum(fangs, lowfangs)
     return head, eyes, detail, hollow
 
 
 def worley(P, cell):
-    """Distance to the nearest and second-nearest jittered lattice point."""
+    """Nearest / second-nearest distances to a jittered lattice, and the nearest point."""
     g = np.floor(P / cell).astype(np.int64)
-    d1 = np.full(len(P), 1e9); d2 = np.full(len(P), 1e9)
+    d1 = np.full(len(P), 1e9); d2 = np.full(len(P), 1e9); f1 = np.zeros_like(P)
     for dx in (-1, 0, 1):
         for dy in (-1, 0, 1):
             for dz in (-1, 0, 1):
@@ -245,15 +292,21 @@ def worley(P, cell):
                 jit = np.c_[(h & 1023) / 1023.0, ((h >> 10) & 1023) / 1023.0, ((h >> 20) & 1023) / 1023.0]
                 fp = (c + 0.15 + 0.7 * jit) * cell
                 d = np.linalg.norm(P - fp, axis=1)
-                d2 = np.where(d < d1, d1, np.minimum(d2, d))
+                closer = d < d1
+                d2 = np.where(closer, d1, np.minimum(d2, d))
+                f1 = np.where(closer[:, None], fp, f1)
                 d1 = np.minimum(d1, d)
-    return d1, d2
+    return d1, d2, f1
 
 
 def head_sdf(P):
     head, eyes, detail, hollow = head_parts(P)
-    d1, d2 = worley(P * np.array([0.8, 1.0, 1.0]), HEAD_CELL)
-    groove = HEAD_DEPTH * (1 - smoothstep(0.0, 0.35 * HEAD_CELL, d2 - d1))
+    # shingled scales: seams between cells, each scale lifted at its rear (free) edge
+    S = P * np.array([0.75, 1.0, 1.0])
+    d1, d2, f1 = worley(S, HEAD_CELL)
+    edge = smoothstep(0.0, 0.3 * HEAD_CELL, d2 - d1)
+    lift = np.clip(0.5 - (S[:, 0] - f1[:, 0]) / HEAD_CELL, 0, 1)
+    groove = HEAD_DEPTH * (1 - edge * (0.45 + 0.55 * lift))
     smooth_zone = smoothstep(0.5, 3.0, hollow)          # no scales inside the mouth
     head = head + groove * smooth_zone
     return np.minimum(np.minimum(head, eyes), detail)
@@ -265,10 +318,7 @@ def keepout_sdf(P):
     X, Y, Z = P.T
     k = []
     # rail and the space above it (accessories, clamps, optics), up to the head
-    rail = np.maximum.reduce([np.abs(Y) - 17.5, 19.5 - Z, X - HEAD_BACK, HG.X_FACE - 2 - X])
-    k.append(rail)
-    # bore of the handguard
-    k.append(np.where(X < HG.X_END, np.hypot(Y, Z) - (HG.R_BORE + 0.2), 1e3))
+    k.append(np.maximum.reduce([np.abs(Y) - 17.5, 19.5 - Z, X - HEAD_BACK, HG.X_FACE - 2 - X]))
     # rear clamp: bottom block with the cross bolts, centre screw and slit
     k.append(np.maximum(X - 64.0, Z + 14.0))
     # receiver end
@@ -287,11 +337,11 @@ def snake_field(P, body):
     return np.maximum(d, -keepout_sdf(P))
 
 
-def mesh_snake(res, slab_mm=24.0):
+def mesh_snake(res, slab_mm=24.0, x_range=(HG.X_FACE, 450.0)):
     body = Body()
-    x0, x1 = HG.X_FACE, 446.0
-    y0, y1 = -40.0, 40.0
-    z0, z1 = -40.0, 46.0
+    x0, x1 = x_range
+    y0, y1 = -42.0, 42.0
+    z0, z1 = -42.0, 46.0
     ys = np.arange(y0, y1 + res, res); zs = np.arange(z0, z1 + res, res)
     xs_all = np.arange(x0, x1 + res, res)
     nslab = int(round(slab_mm / res))
@@ -313,25 +363,52 @@ def mesh_snake(res, slab_mm=24.0):
             verts.append(v + off); faces.append(f + nv); nv += len(v)
         print(f"  slab x={xs[0]:.0f}..{xs[-1]:.0f}  {time.time() - t0:.0f}s", flush=True)
     m = trimesh.Trimesh(np.vstack(verts), np.vstack(faces), process=False)
-    m.merge_vertices(digits_vertex=5)
+    # slabs share their boundary planes; merge those vertices, and close the rare crack
+    # where marching cubes resolved an ambiguous face differently on the two sides
+    m.merge_vertices(digits_vertex=4)
     m.update_faces(m.nondegenerate_faces())
     m.remove_unreferenced_vertices()
+    trimesh.repair.fill_holes(m)
     return m
 
 
 def to_manifold(tm):
-    return Manifold(Mesh(vert_properties=np.asarray(tm.vertices, np.float32),
-                         tri_verts=np.asarray(tm.faces, np.uint32)))
+    m = Manifold(Mesh(vert_properties=np.asarray(tm.vertices, np.float32),
+                      tri_verts=np.asarray(tm.faces, np.uint32)))
+    if m.is_empty():
+        raise SystemExit(f"mesh is not a valid manifold: {m.status()}")
+    return m
+
+
+# ------------------------------------------------------------------ fit to the handguard
+def handguard_envelope():
+    """The space the handguard sweeps as the snake slides on from the muzzle end,
+    grown by the running clearance: its outer profile with every hole, slot and
+    flat recess filled."""
+    circle = CrossSection.circle(HG.R_OUT, HG.SEG)
+    flats = CrossSection.square((2 * HG.FLAT_SIDE, 2 * HG.R_OUT + 2)).translate((-HG.FLAT_SIDE, -HG.FLAT_BOT))
+    rail = HG.rail_profile()
+    grow = lambda cs: cs.offset(CLEARANCE, JoinType.Round, circular_segments=HG.SEG)
+    front = HG.extrude_x(grow((circle ^ flats) + rail), -10.0, HG.X_END + CLEARANCE)
+    rear = HG.extrude_x(grow(circle + rail), -10.0, STEP_X + CLEARANCE)
+    return front + rear
+
+
+def head_top_z(x, y=0.0):
+    zs = np.arange(30.0, 46.0, 0.02)
+    P = np.c_[np.full_like(zs, x), np.full_like(zs, y), zs]
+    d = head_sdf(P)
+    inside = np.flatnonzero(d < 0)
+    return zs[inside.max()] if len(inside) else None
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--res", type=float, default=0.25)
     ap.add_argument("--tolerance", type=float, default=0.02, help="mesh simplification tolerance (mm)")
-    ap.add_argument("--out", default=os.path.join(HERE, "..", "handguard_snake.3mf"))
     ap.add_argument("--cache", default=None, help="reuse / store the raw snake mesh (.npz)")
-    ap.add_argument("--split", type=float, default=209.4, help="X of the joint for the two-piece version (0 = none)")
-    ap.add_argument("--outdir", default=os.path.join(HERE, ".."), help="where the two split pieces go")
+    ap.add_argument("--split", type=float, default=209.4, help="X of the joint between the two snake pieces")
+    ap.add_argument("--outdir", default=os.path.join(HERE, ".."))
     a = ap.parse_args()
     templates = json.load(open(os.path.join(HERE, "..", "data", "hole_templates.json")))
     base = HG.build(templates)
@@ -344,77 +421,36 @@ def main():
         if a.cache:
             np.savez(a.cache, v=sm.vertices.astype(np.float32), f=sm.faces.astype(np.int32))
     print("snake faces", len(sm.faces), "watertight", sm.is_watertight)
-    combined = base + to_manifold(sm)
+    snake = to_manifold(sm) - handguard_envelope()
+    # lock screw: insert hole from the head's top surface down LOCK_INSERT_L, clearance below
+    top = head_top_z(LOCK_X)
+    print("head top above the lock slot: Z =", round(top, 2), " (rail top", HG.RAIL_TOP, ")")
+    if top - LOCK_INSERT_L < HG.RAIL_TOP + CLEARANCE + 0.8:
+        raise SystemExit("not enough material above the rail for the lock-screw insert")
+    insert = Manifold.cylinder(LOCK_INSERT_L + 5, LOCK_INSERT_D / 2, LOCK_INSERT_D / 2, 48) \
+        .translate((LOCK_X, 0, top - LOCK_INSERT_L))
+    clear = Manifold.cylinder(top - HG.RAIL_TOP + 2, LOCK_SCREW_D / 2, LOCK_SCREW_D / 2, 48) \
+        .translate((LOCK_X, 0, HG.RAIL_TOP - 1))
+    snake = snake - insert - clear
     if a.tolerance > 0:
-        combined = combined.simplify(a.tolerance)
-    # drop any zero-volume crumbs left by the booleans
-    parts = sorted(combined.decompose(), key=lambda p: -p.volume())
-    dropped = [round(p.volume(), 4) for p in parts[1:]]
-    combined = parts[0]
-    out = HG.to_trimesh(combined)
-    print("dropped crumbs (mm3)", dropped)
-    print("combined faces", len(out.faces), "watertight", out.is_watertight,
-          "volume cm3", round(out.volume / 1000, 2), "bounds", out.bounds.round(1).tolist())
-    out.export(a.out)  # .3mf keeps the exact manifold topology and is a quarter of the STL size
-    if a.split:
-        for name, piece in split_with_pins(combined, a.split).items():
-            tm = HG.to_trimesh(piece)
-            print(name, "faces", len(tm.faces), "watertight", tm.is_watertight, "bounds", tm.bounds.round(1).tolist())
-            tm.export(os.path.join(a.outdir, f"handguard_snake_{name}.3mf"))
-
-
-PIN_D = 3.2      # holes for 3 mm dowel pins (or 3 mm rod)
-PIN_DEPTH = 6.0  # each side of the joint
-
-
-def split_with_pins(m, xc, n_pins=3, min_wall=3.0):
-    """Cut at X=xc into rear and front pieces with matching dowel-pin holes."""
-    from scipy import ndimage as ndi
-    from shapely import contains_xy
-    tm = HG.to_trimesh(m)
-    sec = tm.section(plane_origin=[xc, 0, 0], plane_normal=[1, 0, 0])
-    to2d = np.array([[0, 1, 0, 0], [0, 0, 1, 0], [1, 0, 0, -xc], [0, 0, 0, 1]], float)
-    planar, _ = sec.to_2D(to_2D=to2d)
-    res = 0.1
-    ys = np.arange(-45, 45, res); zs = np.arange(-45, 50, res)
-    Y, Z = np.meshgrid(ys, zs, indexing="ij")
-    inside = np.zeros(Y.shape, bool)
-    for poly in planar.polygons_full:
-        inside |= contains_xy(poly, Y, Z)
-    dist = ndi.distance_transform_edt(inside) * res
-    cand = np.argwhere(dist >= PIN_D / 2 + min_wall - 1.6)
-    pts = np.c_[ys[cand[:, 0]], zs[cand[:, 1]]]
-    if len(pts) == 0:
-        raise SystemExit(f"no room for pins at X={xc}")
-    # keep only spots where the whole pin hole (both sides of the joint) is inside solid
-    slab = m.trim_by_plane((1, 0, 0), xc - PIN_DEPTH - 2).trim_by_plane((-1, 0, 0), -(xc + PIN_DEPTH + 2))
-    local = HG.to_trimesh(slab)
-    rng = np.random.default_rng(0)
-    pts = pts[rng.permutation(len(pts))[:600]]
-    ang = np.linspace(0, 2 * np.pi, 12, endpoint=False)
-    ring = np.c_[np.cos(ang), np.sin(ang)] * (PIN_D / 2 + 1.0)
-    ok = []
-    for p in pts:
-        probe = [(xc + dx, p[0] + q[0], p[1] + q[1]) for dx in (-PIN_DEPTH - 1, -PIN_DEPTH / 2, PIN_DEPTH / 2, PIN_DEPTH + 1) for q in ring]
-        ok.append(local.contains(np.array(probe)).all())
-    pts = pts[np.array(ok)]
-    if len(pts) == 0:
-        raise SystemExit(f"no room for pins at X={xc}")
-    # spread the pins out: farthest-point sampling
-    chosen = [pts[0]]
-    for _ in range(n_pins - 1):
-        dmin = np.min([np.linalg.norm(pts - c, axis=1) for c in chosen], axis=0)
-        if dmin.max() < PIN_D + 3:
-            break
-        chosen.append(pts[np.argmax(dmin)])
-    print("pin centres (Y, Z):", np.round(chosen, 1).tolist())
-    holes = [Manifold.cylinder(2 * PIN_DEPTH, PIN_D / 2, PIN_D / 2, 32)
-             .transform(np.array([[0, 0, 1, xc - PIN_DEPTH], [1, 0, 0, y], [0, 1, 0, z]], float))
-             for y, z in chosen]
-    cut = m - Manifold.batch_boolean(holes, HG._union_op())
-    rear = cut.trim_by_plane((-1, 0, 0), -xc)   # keeps X <= xc
-    front = cut.trim_by_plane((1, 0, 0), xc)    # keeps X >= xc
-    return {"rear": rear, "front": front}
+        snake = snake.simplify(a.tolerance)
+    pieces = {
+        "rear": snake.trim_by_plane((-1, 0, 0), -a.split),   # keeps X <= split
+        "front": snake.trim_by_plane((1, 0, 0), a.split),    # keeps X >= split
+    }
+    for name, piece in pieces.items():
+        parts = sorted(piece.decompose(), key=lambda p: -p.volume())
+        dropped = [round(p.volume(), 3) for p in parts[1:]]
+        tm = HG.to_trimesh(parts[0])
+        print(f"snake {name}: faces {len(tm.faces)}, watertight {tm.is_watertight}, "
+              f"volume {tm.volume / 1000:.1f} cm3, bounds {tm.bounds.round(1).tolist()}, dropped {dropped}")
+        tm.export(os.path.join(a.outdir, f"snake_{name}.3mf"))
+        pieces[name] = parts[0]
+    # assembled preview: handguard + both snake pieces in place
+    preview = HG.to_trimesh(base + pieces["rear"] + pieces["front"])
+    preview.export(os.path.join(a.outdir, "work", "assembled_preview.stl"))
+    gap = (base ^ (pieces["rear"] + pieces["front"])).volume()
+    print("overlap between handguard and snake (mm3, must be 0):", round(gap, 4))
 
 
 if __name__ == "__main__":
