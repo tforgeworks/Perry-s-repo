@@ -1,0 +1,41 @@
+{
+ "points": 333772,
+ "mean_mm": 0.24951970094120576,
+ "median_mm": 0.1685709330766862,
+ "p90_mm": 0.532598046677272,
+ "p95_mm": 0.6787723530550296,
+ "p99_mm": 1.0134867584351226,
+ "max_mm": 7.220679958731436,
+ "regions": {
+  "rail top": {
+   "points": 14615,
+   "median_mm": 0.17,
+   "p95_mm": 0.329
+  },
+  "rail dovetail flanks": {
+   "points": 23055,
+   "median_mm": 0.269,
+   "p95_mm": 0.761
+  },
+  "rear tube OD": {
+   "points": 28100,
+   "median_mm": 0.077,
+   "p95_mm": 0.188
+  },
+  "barrel-nut bore": {
+   "points": 7142,
+   "median_mm": 0.185,
+   "p95_mm": 0.477
+  },
+  "clamp block": {
+   "points": 14669,
+   "median_mm": 0.322,
+   "p95_mm": 1.269
+  },
+  "slotted section outer skin": {
+   "points": 133704,
+   "median_mm": 0.155,
+   "p95_mm": 0.604
+  }
+ }
+}
