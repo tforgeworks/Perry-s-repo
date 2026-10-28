@@ -95,6 +95,8 @@ sides and bottom are covered while the snake is on.
 
 ### Taking the snake on and off
 
+**Step-by-step picture: [renders/assembly_guide.png](renders/assembly_guide.png)**
+
 The snake does not touch the handguard's fit to the gun. Its inside is cut to the
 handguard's outer shape plus 0.35 mm clearance, with every hole, slot and flat filled in.
 It wraps about 230 deg around, so it cannot lift off, and the flats and the rail stop it
@@ -168,3 +170,4 @@ python verify.py ../handguard_base.stl ../work/tris_al.npy --out ../verification
 | `build_snake.py` | signed-distance snake (body, scales, head), marching cubes at 0.25 mm, cut to the handguard's slide-on envelope, lock-screw hole, split into two pieces |
 | `verify.py` | scan-to-model distances, with the bolted-on accessories masked out |
 | `render_util.py` | the preview renders in `renders/` |
+| `assembly_guide.py` | the illustrated fitting and removal guide (`renders/assembly_guide.png`) |
