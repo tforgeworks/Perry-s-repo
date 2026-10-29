@@ -65,33 +65,35 @@ scanner smooths the undercut. Standard Picatinny accessories will fit it.
 
 ## The snake
 
-Taken from the concept image Jack approved (coiled viper, keeled scales, open
-mouth with fangs at the muzzle):
+The snake is generated with **Meshy** (image-to-3D) from Jack's concept picture
+([`data/meshy_input_concept.jpg`](data/meshy_input_concept.jpg), task in
+[`data/meshy_task.json`](data/meshy_task.json)), then fitted to the rebuilt handguard:
 
-- **Body**: 18 mm thick and covered in keeled, overlapping diamond scales (0.7 mm deep,
-  3.3 mm rows), so the scales print cleanly with a 0.4 mm nozzle at 0.2 mm layers. It starts as a
-  thin tail along the left side of the rear tube, then wraps under the handguard six
-  times, climbing to 65 deg either side of the rail, and runs up the left side as the neck.
-- **Head**, modelled on the concept's close-ups:
-  - an arrow-shaped viper head, widest at the jaw angles, with venom-gland bulges behind them
-  - brow plates overhanging slit-pupil eyes, and a ridge running from each brow to the snout
-  - large shingled scales, and nostrils at the tip of the snout
-  - the gape opens about 45 deg from a hinge just ahead of the handguard, with a thin upper jaw and a lower jaw dropping to a narrow chin
-  - two long curved fangs at the front of the upper jaw and two short ones at the chin
-  - it reaches 60 mm past the end of the handguard
-- **Kept clear**: the Picatinny rail and the space above and beside it, so sights and
-  optics still mount on 36 of the 37 slots (the head covers the last one). Also kept clear:
-  a 31 mm-diameter passage straight through the head for the barrel and muzzle device, the
-  rear clamp (bolts, centre screw, slit) and the receiver end. Every fang tip stays outside
-  that passage.
+![concept (top) vs. the printed model (bottom)](renders/concept_vs_model.png)
+
+- **From Meshy**: the coils, the overlapping keeled scales and the head (brows, eyes,
+  gaping jaws, fangs). Meshy returns the snake on its own guess of a handguard, front sight,
+  receiver and muzzle device. Only the snake is kept.
+- **Fitting** (`scripts/fit_meshy_snake.py`):
+  - The model is scaled 0.300 mm per unit, so Meshy's handguard spans exactly our 387.4 mm, and centred on the bore axis fitted to Meshy's barrel.
+  - Meshy imagined a bottom rail about 8 mm deeper than our flat bottom, so each coil is moved radially to rest on our handguard.
+  - The model is voxelized at 0.25 mm. Everything closer than 1.6 mm to our handguard (3.5 mm over the rail) is removed, which strips Meshy's handguard and rail. Meshy's front sight and muzzle device go too.
+  - Thin pads fill the gap straight under each coil, so every coil bears on the handguard.
+- **Added for the fit**:
+  - a scaled neck saddle over the end of the rail, which holds the lock screw
+  - two jaw hinges, because the 31 mm barrel passage cuts Meshy's jaw at the middle
+  - a scaled collar under the handguard's end that joins the last coil to the head
+- **Kept clear**: the top of the Picatinny rail between the coils, the 31 mm passage through
+  the head for the barrel and muzzle device, the rear clamp and the receiver end.
 
 ![left side](renders/snake_left.png)
 ![head](renders/snake_head.png)
 ![head, side](renders/snake_head_side.png)
 
-**Different from the concept**: the concept's coils also cross over the top of the rail.
-Here the body turns back at 65 deg so the rail stays usable. Some keymod slots on the
-sides and bottom are covered while the snake is on.
+**Different from the concept**:
+- Coils cross the rail top in four places, as in the picture. Optics still mount on the bare rail sections between them.
+- The tips of the upper fangs are shortened where they would hang into the barrel passage.
+- Meshy's front sight is not part of the snake.
 
 ### Taking the snake on and off
 
@@ -123,7 +125,7 @@ through the head; an A2 flash hider or a 7/8 in brake fits.
 
 - **Size**: the handguard is 387.2 mm long, so it needs a big bed. It fits diagonally
   (about 40 deg) on a 350 x 320 mm bed such as the H2D, but not on a 256 mm bed. The two
-  snake pieces are each under 240 mm and fit a 256 mm bed.
+  snake pieces are 203.6 mm and 242.7 mm long and fit a 256 mm bed.
 - **Material**: the handguard sits around a hot barrel. PLA and PETG will soften. Use
   PA-CF, PET-CF, ASA or PC. With carbon-fibre filament, use a hardened nozzle.
 - **Orientation**: lay the handguard on its right side (the side with the cross-bolt heads),
@@ -158,7 +160,8 @@ python ../scripts/align_scan.py Handguard_JackBeard.stl --out tris_al.npy
 python ../scripts/measure_templates.py tris_al.npy --out ../data/hole_templates.json
 cd ../scripts
 python build_handguard.py --out ../handguard_base.stl --fit-test ../handguard_fit_test.stl
-python build_snake.py --cache ../work/snake_raw.npz   # about 12 min the first time, writes snake_rear/front.3mf
+MESHY_API_KEY=... python meshy_client.py submit snake_hg ../data/meshy_input_concept.jpg && MESHY_API_KEY=... python meshy_client.py wait snake_hg
+python fit_meshy_snake.py        # about 7 min, writes snake_rear/front.3mf
 python verify.py ../handguard_base.stl ../work/tris_al.npy --out ../verification/verification.json --fig ../verification/deviation_map.png
 ```
 
@@ -167,7 +170,9 @@ python verify.py ../handguard_base.stl ../work/tris_al.npy --out ../verification
 | `align_scan.py` | puts the scan in the model frame: PCA, bore axis from circle fits of the plain rear tube, and roll from the rail-top normals |
 | `measure_templates.py` | unrolls the outer skin and averages every hole of each type into one outline (`data/hole_templates.json`) |
 | `build_handguard.py` | CSG model (manifold3d): tube with keymod flats, Picatinny rail, hollow rail channel, lugs, clamp block, every cut-out at its measured pitch |
-| `build_snake.py` | signed-distance snake (body, scales, head), marching cubes at 0.25 mm, cut to the handguard's slide-on envelope, lock-screw hole, split into two pieces |
+| `meshy_client.py` | submits the concept picture to Meshy and downloads the result (API key from `MESHY_API_KEY`, never stored) |
+| `fit_meshy_snake.py` | fits Meshy's snake to the handguard, cuts the slide-on envelope, barrel passage and lock screw, splits into two pieces |
+| `build_snake.py` | the shared fit constants and envelope; also the earlier hand-modelled snake (no longer used for the print files) |
 | `verify.py` | scan-to-model distances, with the bolted-on accessories masked out |
 | `render_util.py` | the preview renders in `renders/` |
 | `assembly_guide.py` | the illustrated fitting and removal guide (`renders/assembly_guide.png`) |

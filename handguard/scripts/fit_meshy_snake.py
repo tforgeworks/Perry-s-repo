@@ -1,0 +1,284 @@
+"""Fit the Meshy-generated snake to the rebuilt handguard as two removable slide-on pieces.
+
+Meshy (image-to-3D from the customer's concept picture, work/meshy/in_snake_hg.jpg) returns
+the whole thing as one mesh: its own guess of a handguard, rail, front sight, receiver stub and
+muzzle device, with the snake coiled around them. Only the snake is used. Steps:
+
+1. Frame: the bore axis is fitted to Meshy's barrel (circle fits, t = 180..620) and muzzle
+   device; t runs along it toward the muzzle. Meshy's handguard spans t = -290..1001, which
+   maps onto our 387.4 mm handguard: scale 0.300 mm per unit. At that scale Meshy's handguard
+   matches ours on the sides (radius 19-20 mm) and its rail top is within 1 mm of ours.
+2. Radial fit: Meshy imagined a bottom rail about 8 mm deeper than our flat bottom, so every
+   point is moved radially by (our surface radius - Meshy's surface radius) at its angle,
+   smoothed around the axis and faded out over the head. The coils then rest on our handguard.
+3. Voxelize the mesh (winding-number column rasterizer, robust to Meshy's two open edges) at
+   0.25 mm and keep only what lies more than GAP mm outside our handguard: that removes Meshy's
+   handguard and rail. The front sight, the receiver stub and the muzzle device are removed too.
+4. Pads: the band between our handguard and GAP is filled wherever the snake is within reach,
+   so every coil bears on the handguard.
+5. Mesh, then (exact CSG) cut the slide-on envelope with running clearance, the 31 mm barrel
+   passage through the head and the M5 lock screw, and split into rear and front pieces.
+"""
+import argparse
+import json
+import os
+import sys
+import time
+
+import numpy as np
+import trimesh
+from manifold3d import Manifold
+from scipy import ndimage as ndi
+from shapely import contains_xy
+from shapely.geometry import Polygon
+from skimage.measure import marching_cubes
+
+import build_handguard as HG
+import build_snake as BS
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "..", "..", "wheel-cap", "scripts"))
+from build_cap import rasterize  # noqa: E402
+
+# ---- Meshy frame (fitted on work/meshy/snake_hg/stl.stl) ----
+AXIS_P0 = np.array([400.0, -0.5, -33.5])       # a point on the barrel axis, Meshy units
+AXIS_P1 = np.array([-950.0, -0.5, -30.3])      # centre of the muzzle device
+SCALE = 0.300                                  # mm per Meshy unit
+T_END = 1001.0                                 # Meshy t of the handguard's muzzle end
+SIGHT_T = (560.0, 820.0)                       # Meshy front sight (removed)
+
+GAP = 1.6          # what lies closer than this to our handguard is Meshy's handguard (removed)
+GAP_TOP = 3.5      # same, over the rail, where Meshy's rail teeth stand taller than ours
+H = 0.25           # voxel size
+HEAD_FADE = (360.0, 378.0)   # radial fit fades out over this X range (the head keeps its shape)
+
+
+def meshy_frame():
+    d = (AXIS_P1 - AXIS_P0) / np.linalg.norm(AXIS_P1 - AXIS_P0)
+    ez = np.array([0, 0, 1.0]) - d * d[2]; ez /= np.linalg.norm(ez)
+    ey = np.cross(ez, d)
+    return np.vstack([d, ey, ez])
+
+
+# ---- our handguard's outer profile ----
+def profile_polys():
+    def polys(cs):
+        return [Polygon(p) for p in cs.to_polygons()]
+    circle = HG.CrossSection.circle(HG.R_OUT, HG.SEG)
+    flats = HG.CrossSection.square((2 * HG.FLAT_SIDE, 2 * HG.R_OUT + 2)).translate((-HG.FLAT_SIDE, -HG.FLAT_BOT))
+    keel = HG.CrossSection.square((2 * 14.0, 20.0)).translate((-14.0, -33.0))
+    front = (circle ^ flats) + HG.rail_profile()
+    rear = circle + HG.rail_profile() + keel
+    return polys(front), polys(rear)
+
+
+def surface_radius(polys, th):
+    """Distance from the axis to the outer edge of the profile along angle th (0 = up, +90 = +Y)."""
+    r = np.linspace(0, 45, 4501)
+    out = np.zeros(len(th))
+    for i, t in enumerate(th):
+        y, z = r * np.sin(t), r * np.cos(t)
+        inside = np.zeros(len(r), bool)
+        for p in polys:
+            inside |= contains_xy(p, y, z)
+        out[i] = r[np.flatnonzero(inside).max()] if inside.any() else 0
+    return out
+
+
+def radial_correction(V, F, front_polys):
+    """Per-angle shift (ours - Meshy's handguard surface radius), measured on X 70..350
+    from area-weighted surface samples (flat faces such as the rail top have few vertices)."""
+    P, _ = trimesh.sample.sample_surface(trimesh.Trimesh(V, F, process=False), 3_000_000, seed=0)
+    X, Y, Z = P.T
+    r = np.hypot(Y, Z); th = np.arctan2(Y, Z)
+    k = (X > 70) & (X < 350)
+    nb = 180
+    ib = ((th[k] + np.pi) / (2 * np.pi) * nb).astype(int) % nb
+    ix = ((X[k] - 70) / 1.0).astype(int)
+    rmax = np.zeros((nb, 281)); np.maximum.at(rmax, (ib, ix), r[k])
+    rmax[rmax == 0] = np.nan
+    rm = np.nanpercentile(rmax, 15, axis=1)
+    thc = (np.arange(nb) + 0.5) / nb * 2 * np.pi - np.pi
+    ok = np.isfinite(rm)
+    rm = np.interp(thc, thc[ok], rm[ok], period=2 * np.pi)
+    ro = surface_radius(front_polys, thc)
+    delta = np.clip(ro - rm, -10.0, 3.0)
+    # circular smoothing (sigma 12 deg)
+    delta = ndi.gaussian_filter1d(delta, sigma=12 / 2.0, mode="wrap")
+    return thc, delta, rm, ro
+
+
+def transform(V):
+    R = meshy_frame()
+    W = (V - AXIS_P0) @ R.T
+    X = (W[:, 0] - T_END) * SCALE + HG.X_END
+    return np.c_[X, W[:, 1] * SCALE, W[:, 2] * SCALE]
+
+
+def apply_radial(V, thc, delta):
+    X, Y, Z = V.T
+    r = np.hypot(Y, Z); th = np.arctan2(Y, Z)
+    dr = np.interp(th, thc, delta, period=2 * np.pi) * (1 - BS.smoothstep(*HEAD_FADE, X))
+    s = (r + dr) / np.maximum(r, 1e-9)
+    return np.c_[X, Y * s, Z * s]
+
+
+# ---- voxel stage ----
+def build_field(V, F, front_polys, rear_polys, x_range=(HG.X_FACE, 452.0), slab=30.0):
+    y0, y1, z0, z1 = -44.0, 44.0, -44.0, 52.0
+    ys = y0 + np.arange(int((y1 - y0) / H) + 1) * H
+    zs = z0 + np.arange(int((z1 - z0) / H) + 1) * H
+    Yg, Zg = np.meshgrid(ys, zs, indexing="ij")
+    # signed distance outside our profile (2-D, per section type)
+    def dist_out(polys):
+        inside = np.zeros(Yg.shape, bool)
+        for p in polys:
+            inside |= contains_xy(p, Yg, Zg)
+        return np.where(inside, -ndi.distance_transform_edt(inside), ndi.distance_transform_edt(~inside)) * H
+    d_front, d_rear = dist_out(front_polys), dist_out(rear_polys)
+    xs_all = x_range[0] + np.arange(int((x_range[1] - x_range[0]) / H) + 1) * H
+    halo = int(np.ceil((GAP + 1.5) / H)) + 2
+    nsl = int(slab / H)
+    tri_lo = V[F][:, :, 0].min(1); tri_hi = V[F][:, :, 0].max(1)
+    fields = []
+    t0 = time.time()
+    for a in range(0, len(xs_all), nsl):
+        lo = max(0, a - halo); hi = min(len(xs_all), a + nsl + 1 + halo)
+        xs = xs_all[lo:hi]
+        sel = (tri_hi >= xs[0] - H) & (tri_lo <= xs[-1] + H)
+        grid = dict(x0=xs[0], y0=ys[0], z0=zs[0], h=H, nx=len(xs), ny=len(ys), nz=len(zs))
+        Ff = F[sel]
+        occ = rasterize(V, Ff, grid)
+        if occ.max() <= 0:
+            occ = rasterize(V, Ff, grid, flip=True)
+        X3 = xs[:, None, None]
+        d_env = np.where(X3 < BS.STEP_X, d_rear[None], d_front[None])
+        r3 = np.hypot(Yg, Zg)[None]
+        # what is Meshy's own hardware, not snake
+        t = (X3 - HG.X_END) / SCALE + T_END
+        sight = (t > SIGHT_T[0]) & (t < SIGHT_T[1]) & (np.abs(Yg)[None] < 9.0) & (Zg[None] > HG.RAIL_TOP - 1.0)
+        muzzle = (X3 > HG.X_END - 0.5) & (r3 < BS.PASSAGE_R)
+        gap = np.where((np.abs(Yg) < 13.0) & (Zg > 24.0), GAP_TOP, GAP)[None]
+        # in front of the handguard there is no handguard to strip: only the barrel passage
+        keep = ((d_env > gap) | (X3 > HG.X_END + BS.CLEARANCE)) & ~sight & ~muzzle & (X3 > HG.X_FACE + 3.0)
+        snake = np.where(keep, occ, 0.0).astype(np.float32)
+        # pads: fill the band between the handguard and the trimmed snake, but only straight
+        # under a coil (looking radially outward), so every coil bears on the handguard
+        band = (d_env >= -0.5) & (d_env <= gap + 0.5) & (X3 > HG.X_FACE + 3.0) & (X3 < HG.X_END)
+        pad = np.zeros(snake.shape, np.float32)
+        bi = np.nonzero(band)
+        if len(bi[0]):
+            yb, zb = ys[bi[1]], zs[bi[2]]
+            rb = np.maximum(np.hypot(yb, zb), 1e-6)
+            hit = np.zeros(len(yb), bool)
+            for dlt in np.arange(0.5, GAP_TOP + 1.6, 0.5):
+                f = (rb + dlt) / rb
+                c = np.vstack([bi[0], (yb * f - ys[0]) / H, (zb * f - zs[0]) / H])
+                hit |= ndi.map_coordinates(snake, c, order=1, mode="constant") > 0.5
+            pad[bi[0][hit], bi[1][hit], bi[2][hit]] = 1.0
+        pad = ndi.gaussian_filter(pad, 0.6)
+        field = np.maximum(np.maximum(snake, pad), saddle_occ(X3, Yg, Zg))
+        fields.append(field[a - lo: a - lo + min(nsl, len(xs_all) - a)])
+        print(f"  voxel slab X {xs_all[a]:.0f}..{xs_all[min(a + nsl, len(xs_all) - 1)]:.0f}  {time.time() - t0:.0f}s", flush=True)
+    vol = np.concatenate(fields, axis=0)
+    return vol, (xs_all[0], ys[0], zs[0])
+
+
+SADDLE = ((352.0, 0.0, 31.0), (394.0, 0.0, 32.5), 9.5)   # neck arching over the rail into the head
+COLLAR = (364.0, 394.0, 25.5, -6.0)   # X range, outer radius, top Z: joins the last coil to the head
+CHEEKS = [((388.0, s * 17.0, -6.0), (401.0, s * 12.5, -22.0), 4.5) for s in (1, -1)]  # jaw hinges
+
+
+def saddle_occ(X3, Yg, Zg):
+    """Occupancy of the scaled additions: the neck saddle over the end of the rail (holds the
+    lock screw), the two jaw hinges (the barrel passage cuts Meshy's jaw off at the middle) and
+    a collar under the handguard's end that joins the last coil to the head."""
+    P = np.stack(np.broadcast_arrays(X3, Yg[None], Zg[None]), -1).reshape(-1, 3)
+    near = (P[:, 0] > 340.0) & (P[:, 0] < 412.0) & ((P[:, 2] > 18.0) | (P[:, 2] < 2.0))
+    occ = np.zeros(len(P), np.float32)
+    if near.any():
+        Q = P[near]
+        d = np.minimum.reduce([BS.capsule(Q, a, b, ra, ra) for a, b, ra in [SADDLE] + CHEEKS])
+        x0c, x1c, rc, zc = COLLAR   # the inside is cut later by the slide-on envelope
+        collar = np.maximum.reduce([np.hypot(Q[:, 1], Q[:, 2]) - rc, x0c - Q[:, 0], Q[:, 0] - x1c, Q[:, 2] - zc])
+        d = np.minimum(d, BS.smin(collar, d, 3.0))
+        d1, d2, f1 = BS.worley(Q * np.array([0.75, 1.0, 1.0]), BS.HEAD_CELL)
+        edge = BS.smoothstep(0.0, 0.3 * BS.HEAD_CELL, d2 - d1)
+        lift = np.clip(0.5 - (Q[:, 0] * 0.75 - f1[:, 0]) / BS.HEAD_CELL, 0, 1)
+        d = d + BS.HEAD_DEPTH * (1 - edge * (0.45 + 0.55 * lift))
+        occ[near] = np.clip(0.5 - d / H, 0, 1)
+    return occ.reshape(np.broadcast_shapes(X3.shape, Yg[None].shape))
+
+
+def mesh_field(vol, origin):
+    pad = np.pad(vol, 1, constant_values=0.0)
+    v, f, _, _ = marching_cubes(pad, 0.5, spacing=(H, H, H))
+    v = v + np.array(origin) - H
+    m = trimesh.Trimesh(v, f[:, ::-1], process=False)   # inside = high values: flip to outward normals
+    if m.volume < 0:
+        m.invert()
+    m.merge_vertices(digits_vertex=4); m.update_faces(m.nondegenerate_faces()); m.remove_unreferenced_vertices()
+    trimesh.repair.fill_holes(m)
+    return m
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("meshy_stl", nargs="?", default=os.path.join(HERE, "..", "work", "meshy", "snake_hg", "stl.stl"))
+    ap.add_argument("--split", type=float, default=209.4)
+    ap.add_argument("--outdir", default=os.path.join(HERE, ".."))
+    ap.add_argument("--tolerance", type=float, default=0.02)
+    a = ap.parse_args()
+    t0 = time.time()
+    src = trimesh.load(a.meshy_stl)
+    src.merge_vertices()
+    V = transform(np.asarray(src.vertices, float)); F = np.asarray(src.faces)
+    front_polys, rear_polys = profile_polys()
+    thc, delta, rm, ro = radial_correction(V, F, front_polys)
+    print("radial shift, mm: min %.1f  max %.1f  (bottom %.1f, sides %.1f, top %.1f)" % (
+        delta.min(), delta.max(), delta[0], delta[len(delta) // 4], delta[len(delta) // 2]))
+    V = apply_radial(V, thc, delta)
+    vol, origin = build_field(V, F, front_polys, rear_polys)
+    snake_tm = mesh_field(vol, origin)
+    print("voxel snake:", len(snake_tm.faces), "faces, watertight", snake_tm.is_watertight, f"{time.time() - t0:.0f}s")
+    snake_tm.export(os.path.join(HERE, "..", "work", "meshy_snake_raw.stl"))
+    snake = BS.to_manifold(snake_tm) - BS.handguard_envelope()
+    # barrel passage through the head
+    passage = HG.cyl_x(BS.PASSAGE_R, HG.X_END - 0.5, 470.0)
+    snake = snake - passage
+    # lock screw: through the neck saddle into the last rail slot (heat-set insert in the saddle)
+    hits = trimesh.intersections.mesh_plane(snake_tm, [1, 0, 0], [BS.LOCK_X, 0, 0])
+    zs = [z for seg in hits for (x, y, z) in seg if abs(y) < 0.6 and z > HG.RAIL_TOP]
+    top = max(zs) if zs else None
+    print("saddle top above the lock slot:", None if top is None else round(top, 2))
+    if top is None or top - BS.LOCK_INSERT_L < HG.RAIL_TOP + BS.CLEARANCE + 2.0:
+        raise SystemExit("not enough material above the last rail slot for the lock screw")
+    insert = Manifold.cylinder(BS.LOCK_INSERT_L + 8, BS.LOCK_INSERT_D / 2, BS.LOCK_INSERT_D / 2, 48) \
+        .translate((BS.LOCK_X, 0, top - BS.LOCK_INSERT_L))
+    clear = Manifold.cylinder(top - HG.RAIL_TOP + 2, BS.LOCK_SCREW_D / 2, BS.LOCK_SCREW_D / 2, 48) \
+        .translate((BS.LOCK_X, 0, HG.RAIL_TOP - 1))
+    snake = snake - insert - clear
+    if a.tolerance > 0:
+        snake = snake.simplify(a.tolerance)
+    base = HG.build(json.load(open(os.path.join(HERE, "..", "data", "hole_templates.json"))))
+    pieces = {"rear": snake.trim_by_plane((-1, 0, 0), -a.split), "front": snake.trim_by_plane((1, 0, 0), a.split)}
+    for name, piece in pieces.items():
+        parts = sorted(piece.decompose(), key=lambda p: -p.volume())
+        big = [p for p in parts if p.volume() > 150.0]   # stray bits of Meshy's receiver and sight
+        dropped = [round(p.volume(), 2) for p in parts if p.volume() <= 150.0]
+        piece = big[0]
+        for p in big[1:]:
+            piece = piece + p
+        tm = HG.to_trimesh(piece)
+        print(f"snake {name}: {len(big)} part(s), faces {len(tm.faces)}, watertight {tm.is_watertight}, "
+              f"volume {tm.volume / 1000:.1f} cm3, bounds {tm.bounds.round(1).tolist()}, dropped {dropped[:12]}")
+        tm.export(os.path.join(a.outdir, f"snake_{name}.3mf"))
+        pieces[name] = piece
+    both = pieces["rear"] + pieces["front"]
+    HG.to_trimesh(base + both).export(os.path.join(HERE, "..", "work", "assembled_preview.stl"))
+    print("overlap between handguard and snake (mm3, must be 0):", round((base ^ both).volume(), 4))
+    print(f"done in {time.time() - t0:.0f}s")
+
+
+if __name__ == "__main__":
+    main()
