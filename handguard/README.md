@@ -137,6 +137,11 @@ through the head; an A2 flash hider or a 7/8 in brake fits.
   1.4 mm slit along the bottom of the clamp, open at the rear, lets the bolts squeeze the
   bore onto the barrel nut. The bottom centre screw hole is a 4.5 mm clearance hole with
   a counterbore for reusing the original screw.
+  ![holes on the bottom of the rear clamp](renders/bottom_holes.png)
+
+  The 1.4 mm slit and the round hole at its end are not on Jack's original. They let the
+  printed clamp flex so the side bolts can grip the barrel nut, and the round hole stops a
+  crack from starting at the end of the slit.
 - **Before the long print**: print `handguard_fit_test.stl`. Check that it slides onto the
   barrel nut, that the two rear lugs seat against the receiver, and that the rail lines up
   with the receiver rail. If the bore is tight, raise `R_BORE_REAR` in `scripts/build_handguard.py`.
