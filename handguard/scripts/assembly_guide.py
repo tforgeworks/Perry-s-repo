@@ -1,8 +1,9 @@
-"""Illustrated guide: how the two snake pieces slide on, lock, and come off.
+"""Illustrated assembly guide: parts and hardware, the heat-set insert, mounting the
+handguard on the rifle, sliding on and locking the two snake pieces, and removal.
 
 Renders the real models (handguard, snake_rear, snake_front) on a simple stand-in
-for the rifle (receiver block, barrel, muzzle device), colour-coded, with arrows
-and captions, plus a cut-away of the lock screw and a cross-section showing why
+for the rifle (receiver block, barrel nut, barrel, muzzle device), colour-coded, with
+arrows and captions, plus a cut-away of the lock screw and an end view showing why
 the snake cannot lift off or turn. Output: renders/assembly_guide.png
 """
 import json
@@ -11,6 +12,8 @@ import os
 import numpy as np
 import trimesh
 from PIL import Image, ImageDraw, ImageFont
+
+import build_handguard as HG
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..")
@@ -25,6 +28,8 @@ DARK = np.array([0.30, 0.31, 0.33])      # rifle stand-in
 GREEN = np.array([0.36, 0.66, 0.36])     # snake rear piece
 ORANGE = np.array([0.93, 0.56, 0.20])    # snake front piece
 RED = np.array([0.85, 0.15, 0.15])       # set screw
+BRASS = np.array([0.86, 0.68, 0.25])     # heat-set insert
+STEEL = np.array([0.20, 0.35, 0.75])     # clamp screws
 BG = (250, 250, 248)
 
 VIEW = np.array([0.0, -0.86, -0.51]); UP = np.array([0.0, 0.0, 1.0])  # from the left side, a little above
@@ -46,7 +51,36 @@ def rifle_standin():
     brake = trimesh.creation.cylinder(radius=11.0, height=55, sections=48)
     brake.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0]))
     brake.apply_translation([MUZZLE_X + 27.5, 0, 0])
-    return trimesh.util.concatenate([recv, barrel, brake])
+    nut = cyl_x(17.0, 0.5, 36.0)   # barrel nut
+    return trimesh.util.concatenate([recv, barrel, brake, nut])
+
+
+def cyl_x(r, x0, x1, y=0.0, z=0.0):
+    c = trimesh.creation.cylinder(radius=r, height=x1 - x0, sections=48)
+    c.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [0, 1, 0]))
+    c.apply_translation([(x0 + x1) / 2, y, z]); return c
+
+
+def cyl_y(r, y0, y1, x, z):
+    c = trimesh.creation.cylinder(radius=r, height=y1 - y0, sections=40)
+    c.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [1, 0, 0]))
+    c.apply_translation([x, (y0 + y1) / 2, z]); return c
+
+
+def cyl_z(r, z0, z1, x, y):
+    c = trimesh.creation.cylinder(radius=r, height=z1 - z0, sections=40)
+    c.apply_translation([x, y, (z0 + z1) / 2]); return c
+
+
+def clamp_screws():
+    """Jack's original clamp hardware, in place: two side bolts and the centre screw."""
+    parts = []
+    for x in HG.SCREW_X:
+        parts.append(cyl_y(1.9, -HG.BOSS_HALF + 0.5, 9.0, x, HG.SCREW_Z))             # shank
+        parts.append(cyl_y(3.5, -HG.BOSS_HALF - 0.6, -HG.BOSS_HALF + 2.0, x, HG.SCREW_Z))  # head, in its counterbore
+    parts.append(cyl_z(1.9, HG.KEEL_BOT + 3.5, -12.0, HG.CENTER_SCREW_X, 0.0))
+    parts.append(cyl_z(3.5, HG.KEEL_BOT - 0.4, HG.KEEL_BOT + 4.0, HG.CENTER_SCREW_X, 0.0))
+    return trimesh.util.concatenate(parts)
 
 
 class Scene:
@@ -112,7 +146,8 @@ def legend(W):
     img = Image.new("RGB", (W, 150), BG); d = ImageDraw.Draw(img)
     font = ImageFont.truetype(FONT, 30); x, y = 30, 30
     for name, c in [("handguard (stays on the rifle)", GREY), ("snake rear piece", GREEN),
-                    ("snake front piece (head)", ORANGE), ("set screw", RED), ("rifle", DARK)]:
+                    ("snake front piece (head)", ORANGE), ("set screw", RED), ("heat-set insert", BRASS),
+                    ("clamp screws (Jack's originals)", STEEL), ("rifle", DARK)]:
         width = 70 + d.textlength(name, font=font)
         if x + width > W - 20:
             x, y = 30, y + 55
@@ -125,6 +160,19 @@ def legend(W):
 
 def moved(m, dx):
     m = m.copy(); m.apply_translation([dx, 0, 0]); return m
+
+
+def autocrop(img, pad=30):
+    a = np.asarray(img).astype(int)
+    mask = np.abs(a - np.array(BG)).sum(2) > 12
+    ys, xs = np.nonzero(mask)
+    if len(xs) == 0:
+        return img
+    return img.crop((max(0, xs.min() - pad), max(0, ys.min() - pad), min(img.width, xs.max() + pad), min(img.height, ys.max() + pad)))
+
+
+def moved_z(m, dz):
+    m = m.copy(); m.apply_translation([0, 0, dz]); return m
 
 
 def end_view(base, rear):
@@ -144,9 +192,9 @@ def end_view(base, rear):
                 d.text((t[0], t[1] + 4 + 38 * i), line, fill=(30, 30, 30), font=font, anchor=align + "a")
             else:
                 d.text((t[0], t[1] - 4 - 38 * (len(lines) - 1 - i)), line, fill=(30, 30, 30), font=font, anchor=align + "d")
-    label([0, 0, 31.5], "rail: the snake stays clear of it", (0, -60))
+    label([0, -9.0, 30.0], "rail", (-260, -40), align="r")
     label([0, 18.2, 2], "flat sides + rail:\nthe snake cannot turn", (40, -330), align="l")
-    label([0, -8, -32], "the snake wraps ~230 deg around,\nso it cannot be pulled off sideways", (-60, 120))
+    label([0, -8, -32], "the spiral goes all the way around,\nso it cannot come off sideways", (-60, 120))
     q = sc.px([0, 0, 0])[0]
     d.text(tuple(q), "barrel", fill=(255, 255, 255), font=font, anchor="mm")
     return img
@@ -157,7 +205,7 @@ def main():
     rear = trimesh.load(os.path.join(ROOT, "snake_rear.3mf"), force="mesh")
     front = trimesh.load(os.path.join(ROOT, "snake_front.3mf"), force="mesh")
     rifle = rifle_standin()
-    lo, hi = np.array([-95.0, -40, -40]), np.array([660.0, 40, 80])
+    lo, hi = np.array([-95.0, -40, -40]), np.array([660.0, 40, 95])
     sc = Scene(VIEW, UP, lo, hi, res=0.5)
     ax_pt = lambda x: sc.px([x, -20, 62])[0]  # arrows run just above the parts
     panels = []
@@ -174,26 +222,90 @@ def main():
             d.text(tuple(t), label, fill=(30, 30, 30), font=font, anchor="md")
         panels.append(caption(img, n, title, text, W=sc.W))
 
-    step([(rifle, DARK), (base, GREY)], 1, "Start: the handguard is on the rifle",
-         "Clamp the handguard on as normal. Take off anything bolted to the keymod slots.\n"
-         "The snake goes on afterwards, from the muzzle end (left in these pictures).")
-    step([(rifle, DARK), (base, GREY), (moved(rear, 300), GREEN)], 2, "Slide the rear piece on over the muzzle",
-         "Tail end first. It slides along the handguard like a sleeve; it does not snap on.",
+    screws = clamp_screws()
+    brass = tuple(int(v * 255) for v in BRASS); grey = tuple(int(v * 255) for v in GREY)
+    steel = tuple(int(v * 255) for v in STEEL)
+
+    # ---- parts and hardware
+    sc0 = Scene(VIEW, UP, np.array([-10.0, -60, -130]), np.array([520.0, 60, 70]), res=0.5)
+    rows = [(base, GREY, 0.0, 0.0, "handguard_base.stl"),
+            (rear, GREEN, 0.0, -100.0, "snake_rear.3mf"),
+            (front, ORANGE, 50.0, -100.0, "snake_front.3mf")]
+    items = [(moved_z(moved(m, dx), dz), c) for m, c, dx, dz, _ in rows]
+    img = sc0.render(items)
+    d = ImageDraw.Draw(img); fb = ImageFont.truetype(FONT_B, 30)
+    for m, c, dx, dz, t in rows:
+        q = sc0.px([(m.bounds[0][0] + m.bounds[1][0]) / 2 + dx, 0, m.bounds[1][2] + dz + 6])[0]
+        d.text(tuple(q), t, fill=(30, 30, 30), font=fb, anchor="md")
+    img = autocrop(img)
+    panels.append(caption(img, None, "What you need",
+                          "Printed: the handguard and the two snake pieces.\n"
+                          "Hardware: Jack's original clamp screws (2 side bolts + 1 centre screw), one M5 heat-set\n"
+                          "insert (6.4 mm hole, 6 mm deep) and one M5 x 12 set screw (cup or flat point).\n"
+                          "Tools: soldering iron (for the insert), hex keys for the clamp screws and the set screw.", W=sc.W))
+
+    # ---- 1. heat-set insert
+    sci = Scene([0.25, -0.62, -0.74], UP, np.array([LX - 30, -32, LZ - 30]), np.array([LX + 30, 32, LZ + 24]), res=0.09)
+    f_near = front.slice_plane([LX - 40, 0, 0], [1, 0, 0]).slice_plane([LX + 40, 0, 0], [-1, 0, 0])
+    ins = cyl_z(3.2, LZ + 10, LZ + 16, LX, 0.0)
+    img = sci.render([(f_near, ORANGE), (ins, BRASS)], density=3.0)
+    d = ImageDraw.Draw(img)
+    arrow(d, sci.px([LX, 0, LZ + 9])[0], sci.px([LX, 0, LZ + 1.5])[0], brass, width=10)
+    q = sci.px([LX, 3.2, LZ + 13])[0]
+    d.text((q[0] + 40, q[1]), "M5 heat-set insert", fill=(30, 30, 30), font=fb, anchor="lm")
+    q = sci.px([LX, 0, LZ])[0]
+    d.line([(q[0] - 25, q[1] + 10), (q[0] - 120, q[1] + 120)], fill=(30, 30, 30), width=4)
+    d.text((q[0] - 130, q[1] + 130), "hole on top of the last coil", fill=(30, 30, 30), font=fb, anchor="ra")
+    img = autocrop(img)
+    panels.append(caption(img, 1, "Before you start: put the insert into the head piece",
+                          "Set the insert on the hole on top of the last coil of the front (orange) piece. Press it\n"
+                          "straight down with a soldering iron (about 230 C for PA-CF/PC) until it is flush. Let it cool.\n"
+                          "Do this once; the set screw threads into it every time you fit the snake.", W=sc.W))
+
+    # ---- 2. handguard onto the barrel nut
+    step([(rifle, DARK), (moved(base, 110), GREY)], 2, "Slide the handguard over the barrel and onto the barrel nut",
+         "Muzzle device off if it is larger than the bore. Slide it back until the two small tabs at its rear end\n"
+         "sit against the front of the receiver, with the top rail lined up with the receiver's rail.",
+         arrows=[((300, 170), grey)])
+
+    # ---- 3. clamp screws
+    scc = Scene([0.15, 0.55, 0.82], UP, np.array([-5.0, -32, -36]), np.array([75.0, 32, 30]), res=0.07)
+    b_near = base.slice_plane([80, 0, 0], [-1, 0, 0])
+    img = scc.render([(b_near, GREY), (screws, STEEL), (rifle.slice_plane([80, 0, 0], [-1, 0, 0]), DARK)], density=3.0)
+    d = ImageDraw.Draw(img)
+    for x in HG.SCREW_X:
+        q = scc.px([x, -HG.BOSS_HALF - 0.6, HG.SCREW_Z])[0]
+        arrow(d, q + np.array([0, 150]), q + np.array([0, 40]), steel, width=8)
+    q = scc.px([HG.SCREW_X[1], -HG.BOSS_HALF, HG.SCREW_Z])[0]
+    d.text((q[0] + 60, q[1] + 150), "2 side bolts", fill=(30, 30, 30), font=fb, anchor="lm")
+    q = scc.px([HG.CENTER_SCREW_X, 0, HG.KEEL_BOT])[0]
+    arrow(d, q + np.array([-170, 60]), q + np.array([-45, 10]), steel, width=8)
+    d.text((q[0] - 180, q[1] + 70), "centre screw", fill=(30, 30, 30), font=fb, anchor="rm")
+    img = autocrop(img)
+    panels.append(caption(img, 3, "Tighten the clamp (seen from below, right side)",
+                          "Put Jack's two side bolts in from the right and tighten them a little at a time, alternating.\n"
+                          "Then put in the centre screw from below. Snug them firmly but do not crank them:\n"
+                          "the threads are in plastic. Check the rail is still lined up with the receiver.", W=sc.W))
+
+    # ---- 4 to 7: the snake
+    step([(rifle, DARK), (base, GREY), (moved(rear, 300), GREEN)], 4, "Slide the rear snake piece on over the muzzle",
+         "Tail end first. It slides along the handguard like a sleeve; it does not snap on.\n"
+         "Take off anything bolted to the keymod slots first.",
          arrows=[((520, 380), g)])
-    step([(rifle, DARK), (base, GREY), (rear, GREEN)], 3, "Push it back until it stops",
+    step([(rifle, DARK), (base, GREY), (rear, GREEN)], 5, "Push it back until it stops",
          "It stops against the step near the receiver, where the keymod flats begin.",
          marks=[([63, 18, 2], "stops here", (40, -150))])
-    step([(rifle, DARK), (base, GREY), (rear, GREEN), (moved(front, 200), ORANGE)], 4, "Slide the front piece (the head) on",
+    step([(rifle, DARK), (base, GREY), (rear, GREEN), (moved(front, 200), ORANGE)], 6, "Slide the front piece (the head) on",
          "The barrel and muzzle device pass through the hole in the head.\n"
          "Push it back until the head sits against the end of the handguard.",
          arrows=[((650, 500), o)])
-    step([(rifle, DARK), (base, GREY), (rear, GREEN), (front, ORANGE)], 5, "Tighten the one set screw in the last coil",
-         "The screw drops into the rail slot under the last coil, so the head cannot slide off.\n"
-         "The head in turn holds the rear piece in place. Done.",
-         marks=[([LX, 0, LZ], "set screw", (0, -110))])
-    step([(rifle, DARK), (base, GREY), (moved(rear, 150), GREEN), (moved(front, 200), ORANGE)], 6,
-         "To take it off: loosen the screw, slide both pieces forward",
-         "Front piece first, then the rear piece, off over the muzzle.",
+    step([(rifle, DARK), (base, GREY), (rear, GREEN), (front, ORANGE)], 7, "Tighten the set screw in the last coil",
+         "It goes through the insert into the rail slot under the last coil, so the head\n"
+         "cannot slide off. The head in turn holds the rear piece in place. Snug is enough. Done.",
+         marks=[([LX, 0, LZ], "set screw", (60, -60))])
+    step([(rifle, DARK), (base, GREY), (moved(rear, 150), GREEN), (moved(front, 200), ORANGE)], 8,
+         "To take the snake off: loosen the screw, slide it forward",
+         "Front piece first, then the rear piece, off over the muzzle. The handguard stays on the rifle.",
          arrows=[((480, 620), o), ((250, 380), g)])
 
     # close-up: the head cut in half down the middle, showing the screw in the rail slot
@@ -205,8 +317,7 @@ def main():
     cut = sc2.render([(half(near(base)), GREY), (half(near(front)), ORANGE), (half(screw), RED)])
     d = ImageDraw.Draw(cut); font = ImageFont.truetype(FONT_B, 34)
     for p, label, off, align in [([LX, 0, LZ], "set screw", (60, -120), "l"),
-                                 ([387.7, 0, -17.5], "the head's inner wall stops\nagainst the end of the handguard", (-330, 170), "l"),
-                                 ([350.7, 0, 31.2], "the other rail slots stay free", (-120, -120), "l")]:
+                                 ([387.7, 0, -17.5], "the head's inner wall stops\nagainst the end of the handguard", (-330, 170), "l")]:
         q = sc2.px(p)[0]; t = q + np.array(off)
         d.line([tuple(t), tuple(q)], fill=(30, 30, 30), width=4)
         lines = label.split("\n")
@@ -220,12 +331,12 @@ def main():
                           "The head's inner wall rests against the end of the handguard.", W=sc.W))
 
     panels.append(caption(end_view(base, rear), None, "Why it cannot fall off or spin",
-                          "Looking down the barrel from the muzzle. The snake hugs the handguard with a 0.35 mm gap,\n"
-                          "so it can only slide forward and back. The flat sides and the rail stop it turning.", W=sc.W))
+                          "Looking down the barrel from the muzzle (rear piece only). The snake hugs the handguard with a\n"
+                          "0.35 mm gap, so it can only slide forward and back. The flat sides and the rail stop it turning.", W=sc.W))
 
     W = max(p.width for p in panels)
     title = Image.new("RGB", (W, 110), BG); ImageDraw.Draw(title).text(
-        (30, 55), "Snake handguard: fitting and removing the snake", fill=(20, 20, 20),
+        (30, 55), "Snake handguard: how it all goes together", fill=(20, 20, 20),
         font=ImageFont.truetype(FONT_B, 52), anchor="lm")
     blocks = [title, legend(W)]
     for p in panels:

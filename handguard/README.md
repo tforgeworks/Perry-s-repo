@@ -91,28 +91,32 @@ scanner smooths the undercut. Standard Picatinny accessories will fit it.
 ![head](renders/snake_head.png)
 ![head, side](renders/snake_head_side.png)
 
-### Taking the snake on and off
+### Assembly
 
-**Step-by-step picture: [renders/assembly_guide.png](renders/assembly_guide.png)**
+**Full illustrated guide: [renders/assembly_guide.png](renders/assembly_guide.png)**
 
-The snake does not touch the handguard's fit to the gun. Its inside is cut to the
-handguard's outer shape plus 0.35 mm clearance, with every hole, slot and flat filled in.
-It wraps about 230 deg around, so it cannot lift off, and the flats and the rail stop it
-from turning. It only moves along the bore axis, and slides over the muzzle end like a sleeve.
+Nothing snaps on. The handguard clamps onto the barrel nut like the original. The two snake
+pieces slide on over the muzzle like sleeves and are held by one set screw.
 
-![the handguard and the two snake pieces](renders/snake_exploded.png)
+The snake's inside is cut to the handguard's outer shape plus 0.35 mm clearance, with every
+hole, slot and flat filled in. The spiral goes all the way around, so it cannot come off
+sideways, and the flats and the rail stop it from turning. It only moves along the bore axis.
 
-**To fit it** (with the handguard on the rifle, and anything on the keymod slots removed):
-1. Slide the **rear piece** on over the muzzle, tail first, until it stops against the
+1. **Once, before the first fit**: press the M5 heat-set insert into the hole on top of the
+   last coil of the front piece with a soldering iron (about 230 C for PA-CF/PC), flush.
+2. Slide the **handguard** over the barrel onto the barrel nut, until the two tabs at its rear
+   end sit against the receiver. Line its rail up with the receiver's rail.
+3. Tighten Jack's **two side bolts** a little at a time, alternating, then the **centre screw**
+   from below. Snug them firmly but do not crank them: the threads are in plastic.
+4. Slide the **rear snake piece** on over the muzzle, tail first, until it stops against the
    step where the keymod flats begin, near the receiver.
-2. Slide the **front piece** on behind it. The muzzle device passes through the head.
-   Push it back until the head's inner wall sits against the handguard's muzzle end. The
-   two pieces then meet at their joint.
-3. Tighten the **M5 set screw** in the last coil, where it crosses the rail. It goes through a
-   heat-set insert and into the rail slot under the coil, which locks the front piece. The front
-   piece in turn holds the rear piece.
+5. Slide the **front piece** on behind it. The muzzle device passes through the head. Push it
+   back until the head's inner wall sits against the handguard's muzzle end.
+6. Tighten the **M5 set screw** into the insert. Its tip drops into the rail slot under the
+   last coil, which locks the front piece. The front piece in turn holds the rear piece.
 
-**To take it off**, loosen the set screw and slide both pieces forward off the muzzle.
+**To take the snake off**, loosen the set screw and slide both pieces forward off the muzzle.
+The handguard stays on the rifle.
 
 Hardware: one M5 x 12 set screw (cup or flat point) and one short M5 heat-set insert
 (6.4 mm hole, 6 mm deep). The muzzle device must be under 31 mm in diameter to pass
