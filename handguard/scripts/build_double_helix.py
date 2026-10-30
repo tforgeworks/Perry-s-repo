@@ -557,6 +557,7 @@ def main():
     ap.add_argument("--cache", default=None, help="reuse / store the voxel snake mesh (.npz)")
     ap.add_argument("--outdir", default=os.path.join(HERE, ".."))
     ap.add_argument("--tolerance", type=float, default=0.02)
+    ap.add_argument("--slab", type=float, default=12.0, help="voxel slab length (mm); smaller uses less memory")
     a = ap.parse_args()
     global H
     H = FM.H = a.res
@@ -571,7 +572,7 @@ def main():
         V = FM.transform(np.asarray(src.vertices, float)); F = np.asarray(src.faces)
         thc, delta, _, _ = FM.radial_correction(V, F, front_polys)
         V = FM.apply_radial(V, thc, delta)
-        vol, origin, body = build(V, F, front_polys, rear_polys)
+        vol, origin, body = build(V, F, front_polys, rear_polys, slab=a.slab)
         snake_tm = FM.mesh_field(vol, origin)
         if a.cache:
             np.savez(a.cache, v=snake_tm.vertices.astype(np.float32), f=snake_tm.faces.astype(np.int32))
