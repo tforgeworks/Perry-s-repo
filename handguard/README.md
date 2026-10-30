@@ -177,6 +177,7 @@ the surfaces that fit the gun (rear tube, barrel-nut bore, rail): those still ma
 | snake joint square to the coil | the old flat cut ended in feather-thin wedges |
 | solid 5 mm ring inside the head where it rests on the handguard | it takes the snake's weight every time the rifle cycles |
 | thicker jaw hinges | they hold the lower jaw on |
+| scale flakes thinner than 1.2 mm removed where Meshy's head blends into the body | they would print as loose strands |
 
 Beam check of the handguard (`scripts/strength_check.py`). It slices the real model every
 0.5 mm and loads it as a cantilever from the clamp. Material is printed PA-CF, 40 MPa in its
@@ -219,5 +220,6 @@ python verify.py ../handguard_base.stl ../work/tris_al.npy --out ../verification
 | `verify.py` | scan-to-model distances, with the bolted-on accessories masked out |
 | `strength_check.py` | beam analysis of the handguard from its real cross-sections (`verification/strength.json`) |
 | `thin_check.py` | finds features thinner than 2 mm (5 nozzle widths) in any printed part |
+| `fragment_check.py` | finds pieces that hang on by a thread (bridges under 0.8 mm) and would print loose |
 | `render_util.py` | the preview renders in `renders/` |
 | `assembly_guide.py` | the illustrated fitting and removal guide (`renders/assembly_guide.png`) |

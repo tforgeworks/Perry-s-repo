@@ -50,7 +50,9 @@ SIGHT_T = (560.0, 820.0)                       # Meshy front sight (removed)
 GAP = 1.6          # what lies closer than this to our handguard is Meshy's handguard (removed)
 GAP_TOP = 3.5      # same, over the rail, where Meshy's rail teeth stand taller than ours
 H = 0.25           # voxel size
-HEAD_FADE = (360.0, 378.0)   # radial fit fades out over this X range (the head keeps its shape)
+HEAD_FADE = (360.0, 378.0)
+HEAD_CLEAN_X = 350.0  # from here forward, flakes thinner than CLEAN_T are removed (Meshy blend edges)
+CLEAN_T = 1.2         # mm: three nozzle widths; anything thinner prints as loose strands   # radial fit fades out over this X range (the head keeps its shape)
 
 
 def meshy_frame():
@@ -251,12 +253,46 @@ def build_field(V, F, front_polys, rear_polys, x_range=(HG.X_FACE, 452.0), slab=
         pad = ndi.gaussian_filter(pad, 0.6)
         field = np.maximum(np.maximum(snake, pad), hinge_occ(X3, Yg, Zg))
         field = np.maximum(field, helix_occ(body, X3, Yg, Zg))
+        if xs[-1] > HEAD_CLEAN_X:
+            solid = field > 0.5
+            kept = ndi.binary_opening(solid, structure=ball(CLEAN_T / 2))
+            flakes = solid & ~kept & (X3 > HEAD_CLEAN_X)
+            field = np.where(flakes, 0.0, field).astype(np.float32)
         # rear clamp: cross bolts, centre screw and slit stay free
         field = np.where((X3 < 64.0) & (Zg[None] < -14.0), 0.0, field)
         fields.append(field[a - lo: a - lo + min(nsl, len(xs_all) - a)])
         print(f"  voxel slab X {xs_all[a]:.0f}..{xs_all[min(a + nsl, len(xs_all) - 1)]:.0f}  {time.time() - t0:.0f}s", flush=True)
     vol = np.concatenate(fields, axis=0)
+    # drop anything the flake removal cut loose
+    lab, n = ndi.label(vol > 0.5, structure=np.ones((3, 3, 3)))
+    if n > 1:
+        sizes = ndi.sum(np.ones_like(lab), lab, range(1, n + 1)) * H ** 3
+        loose = np.isin(lab, 1 + np.flatnonzero(sizes < 0.2 * sizes.max()))
+        print(f"  removed {int((sizes < 0.2 * sizes.max()).sum())} loose bits, {sizes[sizes < 0.2 * sizes.max()].sum():.1f} mm3")
+        vol = np.where(loose, 0.0, vol).astype(np.float32)
     return vol, (xs_all[0], ys[0], zs[0])
+
+
+def ball(r):
+    n = int(np.ceil(r / H))
+    g = np.mgrid[-n:n + 1, -n:n + 1, -n:n + 1] * H
+    return (g ** 2).sum(0) <= r * r + 1e-9
+
+
+def strip_slivers(tm):
+    """Remove zero-area shells the booleans leave where the belly cut meets the handguard's
+    flat faces. They only separate once coincident vertices are merged (as most slicers do on
+    import), so find them on a merged copy and delete just those triangles from the original."""
+    merged = tm.copy()
+    merged.merge_vertices()
+    comps = trimesh.graph.connected_components(merged.face_adjacency, nodes=np.arange(len(merged.faces)))
+    areas = merged.area_faces
+    drop = np.concatenate([c for c in comps if areas[c].sum() < 1.0] or [np.zeros(0, int)])
+    if len(drop):
+        keep = np.ones(len(tm.faces), bool); keep[drop] = False
+        tm = trimesh.Trimesh(tm.vertices, tm.faces[keep], process=False)
+        tm.remove_unreferenced_vertices()
+    return tm, len(drop)
 
 
 CHEEKS = [((388.0, s * 17.0, -6.0), (401.0, s * 12.5, -22.0), 6.0) for s in (1, -1)]  # jaw hinges
@@ -378,8 +414,8 @@ def main():
         piece = big[0]
         for p in big[1:]:
             piece = piece + p
-        tm = HG.to_trimesh(piece)
-        print(f"snake {name}: {len(big)} part(s), faces {len(tm.faces)}, watertight {tm.is_watertight}, "
+        tm, slivers = strip_slivers(HG.to_trimesh(piece))
+        print(f"snake {name}: {len(big)} part(s), {slivers} slivers removed, faces {len(tm.faces)}, watertight {tm.is_watertight}, "
               f"volume {tm.volume / 1000:.1f} cm3, bounds {tm.bounds.round(1).tolist()}, dropped {dropped[:12]}")
         tm.export(os.path.join(a.outdir, f"snake_{name}.3mf"))
         pieces[name] = piece
