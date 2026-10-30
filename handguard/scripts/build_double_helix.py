@@ -144,6 +144,16 @@ class Strand(BS.Body):
         r = r + NECK_FLARE[0] * (1 - BS.smoothstep(0.0, NECK_FLARE[1], s0))
         s_neck = s0[np.flatnonzero(lab == 0)].max() if (lab == 0).any() else 0.0
         q0 = 1 - (1 - Q_BODY) * BS.smoothstep(s_neck - 20.0, s_neck + 40.0, s0)
+        # thin parts (the tails) do not sink into the handguard: they rest on its real surface, so the
+        # belly cut cannot eat through them (a smoothed surface would dip below the rail's edges)
+        thin = 1 - BS.smoothstep(4.0, 9.0, r)
+        win = int(round(10.0 / 360 * nb))
+        tf = ndi.maximum_filter1d(FM.surface_radius(front_polys, thb), 2 * win + 1, mode="wrap")
+        tr = ndi.maximum_filter1d(FM.surface_radius(rear_polys, thb), 2 * win + 1, mode="wrap")
+        rs_true = (np.interp(thw, thb, tf, period=2 * np.pi) * (1 - wr) + np.interp(thw, thb, tr, period=2 * np.pi) * wr
+                   + BS.CLEARANCE)
+        rs = rs * (1 - thin) + np.maximum(rs, rs_true) * thin
+        embed = EMBED * (1 - thin) + 0.15 * thin
         # crossings with the other body: where this one passes the top or the bottom
         cross = np.flatnonzero(np.diff(np.floor(TH / 180.0)) != 0)
         cross = [i for i in cross if lab[i] == 1]
@@ -154,9 +164,9 @@ class Strand(BS.Body):
             self.crossings.append((round(float(X[i]), 1), "top" if np.cos(th[i]) > 0 else "bottom", over))
             # the upper body rides up, the lower one sinks into the handguard (its belly is cut off),
             # so neither has to bend much
-            amp = LIFT * 2 * q0[i] * r[i] * (0.55 if over else -0.45)
+            amp = LIFT * 2 * q0[i] * r[i] * (0.55 if over else -0.45 * (1 - thin[i]))
             lift += amp * np.exp(-0.5 * ((s0 - s0[i]) / 30.0) ** 2)
-        rho = rs + (1 - EMBED) * q0 * r + lift
+        rho = rs + (1 - embed) * q0 * r + lift
         C = np.c_[X, rho * np.sin(th), rho * np.cos(th)]
         tgt = HEAD_TARGET * np.array([1, np.sign(np.sin(th[lab == 0]).mean()), 1])
         w = BS.smoothstep(FADE_N[0], tgt[0], X)
