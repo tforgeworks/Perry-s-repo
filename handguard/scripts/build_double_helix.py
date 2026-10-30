@@ -49,12 +49,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # handguard, over the top and under again, and end in two tails on the top shoulders at the
 # rear end. Everything below is for the left-hand body; the right one is its mirror (Y -> -Y).
 K = 4.5                    # deg per mm the bodies turn: they cross every 40 mm (about 64 deg to the bore)
-X_LAST = 338.0             # last crossing (underneath): from it the necks rise diagonally into the head
-X_TC = 58.0                # last crossing over the top at the rear; behind it the tails ease out
+X_LAST = 327.8             # last crossing (underneath): from it the necks rise diagonally into the head
+X_TC = 47.8                # last crossing over the top at the rear; behind it the tails ease out
 X_TIP = 14.0               # tail tips, on the top shoulders at the rear end
 TAIL_EASE = 4              # turning rate behind X_TC = K * smoothstep(X_TIP, X_TC) ** TAIL_EASE
-FADE_N = (352.0, 392.0)    # the turning eases out as the necks enter the head
-X_SPLIT = 238.0            # joint between the two pieces (the bodies are on the left and right sides here)
+FADE_N = (341.8, 381.8)    # the turning eases out as the necks enter the head
+X_SPLIT = 227.8            # joint between the two pieces (the bodies are on the left and right sides here)
 R_NECK = 11.5              # body radius where it enters the head (23 mm thick each)
 R_MID = 14.5               # body radius along the middle (29 mm thick)
 NECK_LEN = 70.0            # the body grows from the neck to its full thickness over this length
@@ -69,16 +69,16 @@ SMOOTH = 10.0              # mm: the centreline is smoothed over this length, so
 HEAD_TARGET = np.array([400.0, 9.0, 6.0])   # each neck ends inside the head here (Y on its own side)
 
 # ---- keep-outs ----
-SIGHT_X = (322.5, 370.5)   # top rail kept clear for a front sight, from the last top crossing to the head
+SIGHT_X = (312.5, 357.0)   # top rail kept clear for a front sight, from the last top crossing to the head
 SIGHT_YZ = (16.0, 24.0)    # ... over |Y| < 16 and Z > 24 (rail top 31.1)
-BIPOD_X = (283.0, 314.0)   # bottom kept clear for the bipod at the front bottom keymod slot (306.95)
+BIPOD_X = (272.5, 303.5)   # bottom kept clear for the bipod at the front bottom keymod hole (X 278.6 to 297.0)
 BIPOD_YZ = (12.0, -19.0)   # ... over |Y| < 12 and Z < -19 (bottom flat -18.55)
 
 # ---- head ----
 HEAD_GRID = dict(x=(352.0, 476.0), y=(-44.0, 44.0), z=(-46.0, 52.0), h=0.3)
 LOW_FANG_HOLLOW = ((434.0, 0.0, -19.5), (15.5, 9.0, 10.0))   # chin fangs removed: a rounded hollow (centre, radii)
 PALATE = ((443.5, 0.0, 0.0), (16.0, 18.6, 18.6))   # Meshy's own fang stubs removed: a smooth vault in the mouth roof
-FANG = ((440.5, 14.6, 17.0), (443.5, 15.4, 9.5), (439.5, 16.4, 2.6))   # root (in the roof of the mouth), control, tip: they lie on one straight line across, so no sideways curve
+FANG = ((440.5, 12.5, 17.0), (443.5, 14.5, 9.5), (439.5, 16.1, 3.4))   # root (in the roof of the mouth), control, tip: nearly one straight line across, no sideways curve; 0.46 mm clear of the barrel passage
 FANG_ROOT_R, FANG_TIP_R = 2.7, 0.25
 NOSE_TIP = (456.0, 0.0, 23.5)
 NOSE = ((445.5, 0.0, 23.5), (9.0, 6.8, 5.4))   # rounded snout (centre, radii)
