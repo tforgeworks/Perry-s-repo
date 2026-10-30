@@ -67,6 +67,9 @@ scanner smooths the undercut. Standard Picatinny accessories will fit it.
 
 ![concept (top) vs. the printed model (bottom)](renders/concept_vs_model.png)
 
+- **Tail**: the spiral continues back past the rear clamp as a tail that tapers evenly
+  over 117 mm to a 2.5 mm rounded tip just ahead of the receiver. Its scales shrink with it.
+  It crosses over the rear rail and ends on the right side, clear of the clamp's bolts and slit.
 - **Body**: one continuous spiral, 19 mm thick, four full turns from behind the rear
   clamp to the head. It crosses over the top rail and under the bottom on every
   turn, like the concept, with no breaks. It is covered in large keeled, overlapping scales
@@ -84,6 +87,7 @@ scanner smooths the undercut. Standard Picatinny accessories will fit it.
   between the coils.
 
 ![left side](renders/snake_left.png)
+![tail](renders/snake_tail.png)
 ![head](renders/snake_head.png)
 ![head, side](renders/snake_head_side.png)
 
@@ -118,7 +122,7 @@ through the head; an A2 flash hider or a 7/8 in brake fits.
 
 - **Size**: the handguard is 387.2 mm long, so it needs a big bed. It fits diagonally
   (about 40 deg) on a 350 x 320 mm bed such as the H2D, but not on a 256 mm bed. The two
-  snake pieces are 155.1 mm and 242.7 mm long and fit a 256 mm bed.
+  snake pieces are 200.6 mm and 242.7 mm long and fit a 256 mm bed.
 - **Material**: the handguard sits around a hot barrel. PLA and PETG will soften. Use
   PA-CF, PET-CF, ASA or PC. With carbon-fibre filament, use a hardened nozzle.
 - **Orientation**: lay the handguard on its right side (the side with the cross-bolt heads),

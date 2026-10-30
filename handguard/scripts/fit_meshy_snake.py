@@ -129,6 +129,9 @@ HELIX_TURNS = 4.0
 HELIX_THETA0 = 100.0       # deg, 0 = top (rail), +90 = left side
 R_HELIX = 9.5              # body radius
 HELIX_EMBED = 0.3          # fraction of the body radius below the handguard surface (cut off as the belly)
+TAIL_X0 = 10.0             # tail tip: the spiral continues backward from HELIX_X[0], tapering to a point
+TAIL_RATE = 2.6            # deg/mm the tail turns (the body turns 4.5 deg/mm); it stays off the clamp below
+TAIL_TIP_R = 1.25           # tip radius (2.5 mm thick tip prints cleanly with a 0.4 mm nozzle)
 MESHY_HEAD_X = (368.0, 384.0)   # Meshy's model fades in over this X range (only its head is used)
 
 
@@ -146,29 +149,43 @@ class HelixBody(BS.Body):
             return np.max([np.roll(r, k) for k in range(-win, win + 1)], axis=0)
         sf, sr = surf(front_polys), surf(rear_polys)
         x0, x1 = HELIX_X
-        x = np.linspace(x0, x1, 200001)
-        th = np.radians(HELIX_THETA0 + 360.0 * HELIX_TURNS * (x - x0) / (x1 - x0))
+        x = np.linspace(TAIL_X0, x1, 250001)
+        body_rate = 360.0 * HELIX_TURNS / (x1 - x0)
+        rate = TAIL_RATE + (body_rate - TAIL_RATE) * BS.smoothstep(x0 - 30.0, x0 + 10.0, x)
+        deg = np.r_[0, np.cumsum(0.5 * (rate[1:] + rate[:-1]) * np.diff(x))]
+        deg += HELIX_THETA0 - np.interp(x0, x, deg)      # the body still starts at HELIX_THETA0
+        th = np.radians(deg)
         thw = np.angle(np.exp(1j * th))
         rs = np.where(x < BS.STEP_X, np.interp(thw, thb, sr, period=2 * np.pi), np.interp(thw, thb, sf, period=2 * np.pi))
-        rs = ndi.gaussian_filter1d(rs, 400)   # smooth the steps of the profile along the path
+        # smooth the steps of the profile along the path (max filter first, so it never sinks in)
+        rs = ndi.gaussian_filter1d(ndi.maximum_filter1d(rs, 4001), 1500)
         rho = rs + (1 - HELIX_EMBED) * R_HELIX
         C = np.c_[x, rho * np.sin(th), rho * np.cos(th)]
         seg = np.linalg.norm(np.diff(C, axis=0), axis=1)
         sc = np.r_[0, np.cumsum(seg)]
         self.s = np.arange(0, sc[-1], step)
         self.C = np.c_[[np.interp(self.s, sc, C[:, k]) for k in range(3)]].T
-        self.r = np.full(len(self.s), R_HELIX)
+        # tail: tapers from the tip to full thickness where the body proper begins
+        s_body = np.interp(x0, self.C[:, 0], self.s)
+        t = np.clip(self.s / s_body, 0, 1)
+        self.r = TAIL_TIP_R + (R_HELIX - TAIL_TIP_R) * t ** 1.15   # an even taper to the tip
         self.T, self.N, self.B = BS.frames(self.C)
         self.tree = BS.cKDTree(self.C)
         self.L = self.s[-1]
         # larger, deeper keeled scales, close to Meshy's
         self.scale_n, self.scale_row, self.scale_depth, self.keel_h = 14, 4.2, 0.9, 0.35
+        # on the tail the scales shrink with the radius and fade out only near the tip
+        ds = np.gradient(self.s)
+        self.phase = np.cumsum(ds * R_HELIX / np.maximum(self.r, 2.0))
+        self.phase -= np.interp(s_body, self.s, self.phase) - s_body
+        self.scale_fade = (1.2, 2.6)
+        self.depth_r = 6.0
 
 
 def helix_occ(body, X3, Yg, Zg):
     P = np.stack(np.broadcast_arrays(X3, Yg[None], Zg[None]), -1).reshape(-1, 3)
     r = np.hypot(P[:, 1], P[:, 2])
-    near = (r > 12.0) & (P[:, 0] > HELIX_X[0] - R_HELIX - 1) & (P[:, 0] < HELIX_X[1] + R_HELIX + 1)
+    near = (r > 12.0) & (P[:, 0] > TAIL_X0 - R_HELIX - 1) & (P[:, 0] < HELIX_X[1] + R_HELIX + 1)
     occ = np.zeros(len(P), np.float32)
     if near.any():
         d = body.sdf(P[near])

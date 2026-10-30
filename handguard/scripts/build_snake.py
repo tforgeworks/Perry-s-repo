@@ -158,6 +158,8 @@ class Body:
 
     def scales(self, s, v, r):
         """Keeled, overlapping diamond scales (displacement, positive = groove)."""
+        if hasattr(self, "phase"):   # scale rows shrink with the body radius (tapered tail)
+            s = np.interp(s, self.s, self.phase, left=-1e3, right=None)
         L = getattr(self, "scale_row", SCALE_ROW)
         W = 2 * np.pi / getattr(self, "scale_n", SCALE_N)
         depth = getattr(self, "scale_depth", SCALE_DEPTH)
@@ -185,7 +187,9 @@ class Body:
         bump = depth * edge * ramp + keel
         # belly (facing the handguard) stays smooth; scale size fades with the tail
         dorsal = smoothstep(0.6, 1.3, np.abs(v))
-        fade = smoothstep(2.0, 4.5, r)
+        fade = smoothstep(getattr(self, "scale_fade", (2.0, 4.5))[0], getattr(self, "scale_fade", (2.0, 4.5))[1], r)
+        if hasattr(self, "depth_r"):   # shallower grooves on a thin tail
+            fade = fade * np.clip(r / self.depth_r, 0.0, 1.0)
         return (depth - bump) * dorsal * fade
 
 
