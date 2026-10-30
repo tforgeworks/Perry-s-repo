@@ -259,13 +259,14 @@ def build_field(V, F, front_polys, rear_polys, x_range=(HG.X_FACE, 452.0), slab=
     return vol, (xs_all[0], ys[0], zs[0])
 
 
-CHEEKS = [((388.0, s * 17.0, -6.0), (401.0, s * 12.5, -22.0), 4.5) for s in (1, -1)]  # jaw hinges
+CHEEKS = [((388.0, s * 17.0, -6.0), (401.0, s * 12.5, -22.0), 6.0) for s in (1, -1)]  # jaw hinges
+THROAT = (HG.X_END + BS.CLEARANCE, HG.X_END + 6.0, 20.0)   # X range and outer radius of the solid stop ring
 
 
 def hinge_occ(X3, Yg, Zg):
     """Occupancy of the two scaled jaw hinges (the barrel passage cuts Meshy's jaw off at the middle)."""
     P = np.stack(np.broadcast_arrays(X3, Yg[None], Zg[None]), -1).reshape(-1, 3)
-    near = (P[:, 0] > 380.0) & (P[:, 0] < 410.0) & (P[:, 2] < 2.0) & (np.abs(P[:, 1]) > 6.0)
+    near = (P[:, 0] > 378.0) & (P[:, 0] < 412.0) & (P[:, 2] < 4.0) & (np.abs(P[:, 1]) > 4.0)
     occ = np.zeros(len(P), np.float32)
     if near.any():
         Q = P[near]
@@ -290,6 +291,27 @@ def mesh_field(vol, origin):
     return m
 
 
+def split_square_to_coil(snake, xc, r_local=15.0):
+    """Split into rear and front pieces with the joint square to the coil, instead of along a
+    plane across the bore (that cuts the coil at a shallow angle into feather-thin wedges).
+    A ball around the coil's centreline where it crosses X = xc severs the coil; inside the
+    ball the cut is the plane perpendicular to the centreline, and each half joins the side
+    of the coil it touches (tail side -> rear piece, head side -> front piece)."""
+    fp, rp = profile_polys()
+    body = HelixBody(fp, rp)
+    i = int(np.argmin(np.abs(body.C[:, 0] - xc)))
+    p, t = body.C[i], body.T[i]
+    print("joint: square to the coil at", p.round(1).tolist(), "tangent", t.round(3).tolist())
+    ball = Manifold.sphere(r_local, 96).translate(tuple(p))
+    rest = sorted((snake - ball).decompose(), key=lambda m: -m.volume())
+    tail_side = min(rest[:2], key=lambda m: m.bounding_box()[0])
+    head_side = max(rest[:2], key=lambda m: m.bounding_box()[0])
+    local = snake ^ ball
+    rear = tail_side + local.trim_by_plane(tuple(-t), float(-t @ p))
+    front = head_side + local.trim_by_plane(tuple(t), float(t @ p))
+    return {"rear": rear, "front": front}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("meshy_stl", nargs="?", default=os.path.join(HERE, "..", "work", "meshy", "snake_hg", "stl.stl"))
@@ -312,6 +334,10 @@ def main():
     snake_tm.export(os.path.join(HERE, "..", "work", "meshy_snake_raw.stl"))
     snake = BS.to_manifold(snake_tm) - BS.handguard_envelope()
     # barrel passage through the head
+    # a solid ring inside the head where it rests on the handguard's muzzle end (it takes the
+    # snake's weight whenever the rifle cycles), then the barrel passage through it
+    throat = HG.cyl_x(THROAT[2], THROAT[0], THROAT[1])
+    snake = snake + throat
     passage = HG.cyl_x(BS.PASSAGE_R, HG.X_END - 0.5, 470.0)
     snake = snake - passage
     # lock screw: down through the last coil that crosses the top rail, into the rail slot
@@ -344,7 +370,7 @@ def main():
     if a.tolerance > 0:
         snake = snake.simplify(a.tolerance)
     base = HG.build(json.load(open(os.path.join(HERE, "..", "data", "hole_templates.json"))))
-    pieces = {"rear": snake.trim_by_plane((-1, 0, 0), -a.split), "front": snake.trim_by_plane((1, 0, 0), a.split)}
+    pieces = split_square_to_coil(snake, a.split)
     for name, piece in pieces.items():
         parts = sorted(piece.decompose(), key=lambda p: -p.volume())
         big = [p for p in parts if p.volume() > 150.0]   # stray bits of Meshy's receiver and sight

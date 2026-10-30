@@ -73,11 +73,16 @@ def cyl_z(r, z0, z1, x, y):
 
 
 def clamp_screws():
-    """Jack's original clamp hardware, in place: two side bolts and the centre screw."""
+    """Clamp hardware in place: two M4 x 25 bolts with captive nuts, and Jack's centre screw."""
     parts = []
     for x in HG.SCREW_X:
-        parts.append(cyl_y(1.9, -HG.BOSS_HALF + 0.5, 9.0, x, HG.SCREW_Z))             # shank
-        parts.append(cyl_y(3.5, -HG.BOSS_HALF - 0.6, -HG.BOSS_HALF + 2.0, x, HG.SCREW_Z))  # head, in its counterbore
+        y_head = -HG.BOSS_HALF + 4.0
+        parts.append(cyl_y(1.9, y_head, y_head + 25.0, x, HG.SCREW_Z))             # shank
+        parts.append(cyl_y(3.5, y_head - 4.0, y_head, x, HG.SCREW_Z))               # head, flush in its counterbore
+        nut = trimesh.creation.cylinder(radius=7.0 / np.sqrt(3), height=3.2, sections=6)
+        nut.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [1, 0, 0]))
+        nut.apply_translation([x, HG.BOSS_HALF - HG.NUT_T + 1.6, HG.SCREW_Z])
+        parts.append(nut)
     parts.append(cyl_z(1.9, HG.KEEL_BOT + 3.5, -12.0, HG.CENTER_SCREW_X, 0.0))
     parts.append(cyl_z(3.5, HG.KEEL_BOT - 0.4, HG.KEEL_BOT + 4.0, HG.CENTER_SCREW_X, 0.0))
     return trimesh.util.concatenate(parts)
@@ -147,7 +152,7 @@ def legend(W):
     font = ImageFont.truetype(FONT, 30); x, y = 30, 30
     for name, c in [("handguard (stays on the rifle)", GREY), ("snake rear piece", GREEN),
                     ("snake front piece (head)", ORANGE), ("set screw", RED), ("heat-set insert", BRASS),
-                    ("clamp screws (Jack's originals)", STEEL), ("rifle", DARK)]:
+                    ("clamp bolts and screw", STEEL), ("rifle", DARK)]:
         width = 70 + d.textlength(name, font=font)
         if x + width > W - 20:
             x, y = 30, y + 55
@@ -240,9 +245,10 @@ def main():
     img = autocrop(img)
     panels.append(caption(img, None, "What you need",
                           "Printed: the handguard and the two snake pieces.\n"
-                          "Hardware: Jack's original clamp screws (2 side bolts + 1 centre screw), one M5 heat-set\n"
-                          "insert (6.4 mm hole, 6 mm deep) and one M5 x 12 set screw (cup or flat point).\n"
-                          "Tools: soldering iron (for the insert), hex keys for the clamp screws and the set screw.", W=sc.W))
+                          "Hardware: 2 x M4 x 25 socket head bolts + 2 x M4 hex nuts (clamp), Jack's original centre\n"
+                          "screw, one M5 heat-set insert (6.4 mm hole, 6 mm deep), one M5 x 12 set screw (cup or flat point),\n"
+                          "blue (medium) thread locker.\n"
+                          "Tools: soldering iron (for the insert), hex keys for the bolts, nut and set screw.", W=sc.W))
 
     # ---- 1. heat-set insert
     sci = Scene([0.25, -0.62, -0.74], UP, np.array([LX - 30, -32, LZ - 30]), np.array([LX + 30, 32, LZ + 24]), res=0.09)
@@ -277,15 +283,16 @@ def main():
         q = scc.px([x, -HG.BOSS_HALF - 0.6, HG.SCREW_Z])[0]
         arrow(d, q + np.array([0, 150]), q + np.array([0, 40]), steel, width=8)
     q = scc.px([HG.SCREW_X[1], -HG.BOSS_HALF, HG.SCREW_Z])[0]
-    d.text((q[0] + 60, q[1] + 150), "2 side bolts", fill=(30, 30, 30), font=fb, anchor="lm")
+    d.text((q[0] + 60, q[1] + 150), "2 x M4 bolts (nuts on the far side)", fill=(30, 30, 30), font=fb, anchor="lm")
     q = scc.px([HG.CENTER_SCREW_X, 0, HG.KEEL_BOT])[0]
     arrow(d, q + np.array([-170, 60]), q + np.array([-45, 10]), steel, width=8)
     d.text((q[0] - 180, q[1] + 70), "centre screw", fill=(30, 30, 30), font=fb, anchor="rm")
     img = autocrop(img)
     panels.append(caption(img, 3, "Tighten the clamp (seen from below, right side)",
-                          "Put Jack's two side bolts in from the right and tighten them a little at a time, alternating.\n"
-                          "Then put in the centre screw from below. Snug them firmly but do not crank them:\n"
-                          "the threads are in plastic. Check the rail is still lined up with the receiver.", W=sc.W))
+                          "Drop the two M4 nuts into the hex pockets on the left side of the clamp. Put the M4 x 25 bolts\n"
+                          "in from the right with a drop of blue thread locker and tighten them a little at a time,\n"
+                          "alternating, to about 2 N m (firm, not cranked). Then put Jack's centre screw back in from below.\n"
+                          "Check the rail is lined up with the receiver. Re-check the bolts after the first range trip.", W=sc.W))
 
     # ---- 4 to 7: the snake
     step([(rifle, DARK), (base, GREY), (moved(rear, 300), GREEN)], 4, "Slide the rear snake piece on over the muzzle",

@@ -106,8 +106,10 @@ sideways, and the flats and the rail stop it from turning. It only moves along t
    last coil of the front piece with a soldering iron (about 230 C for PA-CF/PC), flush.
 2. Slide the **handguard** over the barrel onto the barrel nut, until the two tabs at its rear
    end sit against the receiver. Line its rail up with the receiver's rail.
-3. Tighten Jack's **two side bolts** a little at a time, alternating, then the **centre screw**
-   from below. Snug them firmly but do not crank them: the threads are in plastic.
+3. Drop two **M4 hex nuts** into the hex pockets on the left side of the clamp. Put two
+   **M4 x 25 bolts** in from the right with a drop of blue thread locker and tighten them a little
+   at a time, alternating, to about 2 N m (firm, not cranked). Then put Jack's **centre screw**
+   back in from below. Re-check the bolts after the first range trip.
 4. Slide the **rear snake piece** on over the muzzle, tail first, until it stops against the
    step where the keymod flats begin, near the receiver.
 5. Slide the **front piece** on behind it. The muzzle device passes through the head. Push it
@@ -126,18 +128,22 @@ through the head; an A2 flash hider or a 7/8 in brake fits.
 
 - **Size**: the handguard is 387.2 mm long, so it needs a big bed. It fits diagonally
   (about 40 deg) on a 350 x 320 mm bed such as the H2D, but not on a 256 mm bed. The two
-  snake pieces are 200.6 mm and 242.7 mm long and fit a 256 mm bed.
-- **Material**: the handguard sits around a hot barrel. PLA and PETG will soften. Use
-  PA-CF, PET-CF, ASA or PC. With carbon-fibre filament, use a hardened nozzle.
-- **Orientation**: lay the handguard on its right side (the side with the cross-bolt heads),
-  with supports only under the clamp block. Lay each snake piece on its right side too, with
-  tree supports. Use 4+ walls on the handguard and about 30% gyroid infill. The snake can
-  use fewer walls.
+  snake pieces are 209.7 mm and 251.8 mm long and fit a 256 mm bed.
+- **Material**: **PA-CF (carbon-fibre nylon)** for all three parts. It is the strongest and stiffest
+  common option and stays firm near a hot barrel. PC or PC-CF are next best. ASA works for the
+  snake only. PLA and PETG will soften and creep: do not use them. Dry the PA-CF before printing,
+  and use a hardened nozzle.
+- **Orientation**: print the handguard **rail-down** (rail top flat on the bed, clamp block on top).
+  The layers then run along the length and across the clamp bolts, its strongest direction for
+  both bending and clamping. Use tree supports inside the bore and under the sides of the tube.
+  Lay each snake piece on its side with tree supports.
+- **Strength settings**: handguard 6 walls, 6 top and bottom layers, 50% gyroid (with walls
+  this thin it prints almost solid). Snake pieces 4 walls, 25% gyroid.
 - **Snake fit**: the 0.35 mm clearance assumes a calibrated printer. If a piece is tight,
   raise `CLEARANCE` in `scripts/build_snake.py`. If it rattles, lower it.
-- **Clamp hardware**: the two cross-bolt holes are 4.5 mm clearance on the screw-head
-  side (7.6 mm counterbores) and 3.4 mm pilot holes on the other side. Tap M4 (or #8-32
-  if Jack's original screws are imperial), or open them up for heat-set inserts. The
+- **Clamp hardware**: the two cross-bolt holes are 4.5 mm clearance, with 7.6 mm counterbores on
+  the right so the bolt heads sit flush, and hex pockets for M4 nuts on the left. The bolts
+  pull on steel nuts, not plastic threads, so they cannot strip or work loose. The
   1.4 mm slit along the bottom of the clamp, open at the rear, lets the bolts squeeze the
   bore onto the barrel nut. The bottom centre screw hole is a 4.5 mm clearance hole with
   a counterbore for reusing the original screw.
@@ -153,8 +159,39 @@ through the head; an A2 flash hider or a 7/8 in brake fits.
 **Things to confirm with Jack**:
 - The muzzle device must fit through the 31 mm passage in the head, which leaves room
   for a standard A2 flash hider or a 7/8 in brake.
-- A brake's side ports should sit in front of the jaws. The snout ends 51 mm past the handguard.
+- A brake's side ports should sit in front of the jaws. The snout ends 65 mm past the handguard.
 - If he uses a bipod on a keymod slot, it has to come off before the snake slides on.
+
+## Strength
+
+The original handguard is aluminium. A plastic copy needs more material in the right places to
+hold up, so the printed parts differ from the original in a few hidden ways. None of them touch
+the surfaces that fit the gun (rear tube, barrel-nut bore, rail): those still match the scan.
+
+| change | why |
+|---|---|
+| lightening slots are 1.2 mm deep recesses, not holes | the tube stays a closed section instead of a cage of thin strips |
+| 3.5 mm of plastic under each rail slot (was 1.5 mm) | optics and their clamps sit there and get shaken by recoil |
+| steel M4 nuts in hex pockets, M4 x 25 bolts | plastic threads strip and loosen; the wider clamp boss leaves 4.6 mm of plastic behind each nut |
+| 4.5 mm round end on the clamp slit (was 3.2 mm) | spreads the stress where a crack would start |
+| snake joint square to the coil | the old flat cut ended in feather-thin wedges |
+| solid 5 mm ring inside the head where it rests on the handguard | it takes the snake's weight every time the rifle cycles |
+| thicker jaw hinges | they hold the lower jaw on |
+
+Beam check of the handguard (`scripts/strength_check.py`). It slices the real model every
+0.5 mm and loads it as a cantilever from the clamp. Material is printed PA-CF, 40 MPa in its
+weakest direction:
+
+| load | before | after |
+|---|---|---|
+| firing: the parts' own weight at 100 g of recoil, along the bore | 2.1 MPa | 1.4 MPa (safety factor about 30) |
+| 200 N (20 kg) shove sideways at the muzzle end | 55 MPa, would crack | 33 MPa, safety factor 1.2 |
+| 200 N vertical at the muzzle end | 37 MPa | 22 MPa |
+| tip flex under the 200 N side shove | 16.9 mm | 12.8 mm |
+
+Firing loads are tiny next to what the plastic can take. The heavy-abuse cases (leaning the
+rifle's full weight on the muzzle end against a barricade, a hard knock) are where a printed
+handguard is still weaker than aluminium.
 
 ## Rebuilding
 
@@ -180,5 +217,7 @@ python verify.py ../handguard_base.stl ../work/tris_al.npy --out ../verification
 | `fit_meshy_snake.py` | builds the spiral body, fits Meshy's head, cuts the slide-on envelope, barrel passage and lock screw, splits into two pieces |
 | `build_snake.py` | the shared fit constants and envelope; also the earlier hand-modelled snake (no longer used for the print files) |
 | `verify.py` | scan-to-model distances, with the bolted-on accessories masked out |
+| `strength_check.py` | beam analysis of the handguard from its real cross-sections (`verification/strength.json`) |
+| `thin_check.py` | finds features thinner than 2 mm (5 nozzle widths) in any printed part |
 | `render_util.py` | the preview renders in `renders/` |
 | `assembly_guide.py` | the illustrated fitting and removal guide (`renders/assembly_guide.png`) |

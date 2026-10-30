@@ -32,7 +32,7 @@ R_BORE_REAR = 17.30   # barrel-nut bore (ID 34.6, scan 34.4 + 0.2 print clearanc
 X_BORE_REAR = 60.0    # depth of the barrel-nut bore
 R_BORE = 16.30        # bore in front of the barrel nut (ID 32.6)
 CHAN_W = 5.5          # half width of the channel under the rail
-CHAN_TOP = 27.0       # channel ceiling
+CHAN_TOP = 25.0       # channel ceiling (3.5 mm of plastic under each rail slot; a gas tube or gas block sits far lower)
 
 # Picatinny rail (MIL-STD-1913 profile, height from scan)
 RAIL_TOP = 31.10
@@ -53,6 +53,11 @@ ROWS = [
     ("bottomkey", 86.95, 20.0, 14, (1,)),
 ]
 CUT_DEG = {"upper": 60.0, "lower": None}  # milling direction of the slot walls
+# Lightening slots are blind pockets on the printed part, not through-holes: the outline is
+# the same, but a 2.2 mm skin stays behind, so the tube is a closed section (much stiffer and
+# stronger in plastic than the original aluminium cage). Keymod holes stay open.
+POCKET_ROWS = {"upper", "lower"}
+POCKET_R = 18.5           # pocket floor radius (bore 16.3 -> 2.2 mm skin)
 FRONT_HOLE_X = 377.2
 FRONT_HOLE_D = 11.0
 
@@ -60,17 +65,20 @@ FRONT_HOLE_D = 11.0
 KEEL_HALF = 8.2
 KEEL_BOT = -29.07
 BOSS_X = (16.2, 46.0)
-BOSS_HALF = 11.8
+BOSS_HALF = 14.0      # wider than the original (11.8): room for nut pockets with a 4.6 mm jaw behind them
 BOSS_BOT = -27.3
 WING_INNER = 4.9
 SCREW_X = (23.3, 39.4)  # two cross bolts, axis along Y
 SCREW_Z = -22.3
 CENTER_SCREW_X = 31.3   # vertical screw on the bottom centre
 CLEAR_D = 4.5           # M4 clearance
-TAP_D = 3.4             # pilot for M4 / #8-32 threads (or drill out for an insert)
 CBORE_D = 7.6
 SLIT = (4.2, 5.6)       # Y range of the clamp slit
 SLIT_X = 52.0
+RELIEF_D = 4.5            # round end of the slit: stops a crack from starting there
+# M4 hex nuts captured on the left (+Y) side of the clamp boss: steel threads instead of plastic
+NUT_AF = 7.3              # M4 nut is 7.0 mm across the flats, plus clearance
+NUT_T = 3.8               # M4 nut is 3.2 mm thick
 
 FIT_TEST_X = 70.0
 
@@ -95,6 +103,13 @@ def cyl_x(r, x0, x1):
 def cyl_y(r, x, z, y0, y1):
     c = Manifold.cylinder(y1 - y0, r, r, 64)  # along Z
     m = np.array([[1, 0, 0, x], [0, 0, 1, y0], [0, 1, 0, z]], float)  # z->Y, y->Z
+    return c.transform(m)
+
+
+def hex_y(af, x, z, y0, y1):
+    """Hexagonal prism along Y (a nut pocket), flats across af, one flat facing up."""
+    c = Manifold.cylinder(y1 - y0, af / np.sqrt(3), af / np.sqrt(3), 6)
+    m = np.array([[1, 0, 0, x], [0, 0, 1, y0], [0, 1, 0, z]], float)
     return c.transform(m)
 
 
@@ -216,8 +231,11 @@ def build(templates):
         outline = np.asarray(tpl["outline_dx_mm_dtheta_deg"])
         for k in range(count):
             for side in sides:
-                cutters.append(hole_cutter(outline, x0 + k * pitch, tpl["theta_center_deg"], side,
-                                           cut_deg=CUT_DEG.get(name)))
+                c = hole_cutter(outline, x0 + k * pitch, tpl["theta_center_deg"], side, cut_deg=CUT_DEG.get(name))
+                if name in POCKET_ROWS:
+                    xc = x0 + k * pitch
+                    c -= cyl_x(POCKET_R, xc - 15.0, xc + 15.0)
+                cutters.append(c)
     ang = np.linspace(0, 2 * np.pi, 72, endpoint=False)
     circ = np.c_[FRONT_HOLE_D / 2 * np.cos(ang), np.degrees(FRONT_HOLE_D / 2 * np.sin(ang) / FLAT_SIDE)]
     for side in (1, -1):
@@ -226,13 +244,13 @@ def build(templates):
 
     # --- clamp hardware holes and slit
     for x in SCREW_X:
-        body -= cyl_y(CLEAR_D / 2, x, SCREW_Z, -20, SLIT[1])
-        body -= cyl_y(TAP_D / 2, x, SCREW_Z, SLIT[0], 20)
-        body -= cyl_y(CBORE_D / 2, x, SCREW_Z, -20, -BOSS_HALF + 2.0)
+        body -= cyl_y(CLEAR_D / 2, x, SCREW_Z, -20, 20)
+        body -= cyl_y(CBORE_D / 2, x, SCREW_Z, -20, -BOSS_HALF + 4.0)   # head sits flush
+        body -= hex_y(NUT_AF, x, SCREW_Z, BOSS_HALF - NUT_T, 20)
     body -= cyl_z(CLEAR_D / 2, CENTER_SCREW_X, 0, -35, -10)
     body -= cyl_z(CBORE_D / 2, CENTER_SCREW_X, 0, -35, KEEL_BOT + 4.2)
     body -= box(-1, SLIT_X, SLIT[0], SLIT[1], -35, -12)
-    body -= cyl_z(1.6, SLIT_X, (SLIT[0] + SLIT[1]) / 2, -35, -12)
+    body -= cyl_z(RELIEF_D / 2, SLIT_X, (SLIT[0] + SLIT[1]) / 2, -35, -12)
     return body
 
 
