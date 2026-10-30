@@ -22,12 +22,15 @@ FONT_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
 LOCK = json.load(open(os.path.join(ROOT, "data", "snake_lock.json")))
 HG_RAIL = 31.1
-LX, LZ = LOCK["lock_x"], LOCK["coil_top"]
+# per piece: "snap" (spring ball plunger) and "lock" (set screw) positions over rail slots
+SPOTS = {(p, r): (v["x"], v["coil_top"]) for p, d in LOCK.items() for r, v in d.items()}
+LX, LZ = SPOTS[("front", "lock")]
 GREY = np.array([0.72, 0.74, 0.77])      # handguard
 DARK = np.array([0.30, 0.31, 0.33])      # rifle stand-in
 GREEN = np.array([0.36, 0.66, 0.36])     # snake rear piece
 ORANGE = np.array([0.93, 0.56, 0.20])    # snake front piece
-RED = np.array([0.85, 0.15, 0.15])       # set screw
+RED = np.array([0.85, 0.15, 0.15])       # set screws
+PURPLE = np.array([0.55, 0.30, 0.75])    # spring ball plungers
 BRASS = np.array([0.86, 0.68, 0.25])     # heat-set insert
 STEEL = np.array([0.20, 0.35, 0.75])     # clamp screws
 BG = (250, 250, 248)
@@ -151,7 +154,8 @@ def legend(W):
     img = Image.new("RGB", (W, 150), BG); d = ImageDraw.Draw(img)
     font = ImageFont.truetype(FONT, 30); x, y = 30, 30
     for name, c in [("handguard (stays on the rifle)", GREY), ("snake rear piece", GREEN),
-                    ("snake front piece (head)", ORANGE), ("set screw", RED), ("heat-set insert", BRASS),
+                    ("snake front piece (head)", ORANGE), ("snap: ball plunger", PURPLE), ("lock: set screw", RED),
+                    ("heat-set insert", BRASS),
                     ("clamp bolts and screw", STEEL), ("rifle", DARK)]:
         width = 70 + d.textlength(name, font=font)
         if x + width > W - 20:
@@ -245,10 +249,10 @@ def main():
     img = autocrop(img)
     panels.append(caption(img, None, "What you need",
                           "Printed: the handguard and the two snake pieces.\n"
-                          "Hardware: 2 x M4 x 25 socket head bolts + 2 x M4 hex nuts (clamp), Jack's original centre\n"
-                          "screw, one M5 heat-set insert (6.4 mm hole, 6 mm deep), one M5 x 12 set screw (cup or flat point),\n"
-                          "blue (medium) thread locker.\n"
-                          "Tools: soldering iron (for the insert), hex keys for the bolts, nut and set screw.", W=sc.W))
+                          "Hardware: 2 x M4 x 25 socket head bolts + 2 x M4 hex nuts (clamp), Jack's original centre screw,\n"
+                          "4 x M5 heat-set inserts (6.4 mm hole, 6 mm deep), 2 x M5 x 14 spring ball plungers (slotted,\n"
+                          "steel ball, standard force), 2 x M5 x 16 set screws (cup point), blue (medium) thread locker.\n"
+                          "Tools: soldering iron (for the inserts), flat screwdriver, hex keys.", W=sc.W))
 
     # ---- 1. heat-set insert
     sci = Scene([0.25, -0.62, -0.74], UP, np.array([LX - 30, -32, LZ - 30]), np.array([LX + 30, 32, LZ + 24]), res=0.09)
@@ -261,12 +265,14 @@ def main():
     d.text((q[0] + 40, q[1]), "M5 heat-set insert", fill=(30, 30, 30), font=fb, anchor="lm")
     q = sci.px([LX, 0, LZ])[0]
     d.line([(q[0] - 25, q[1] + 10), (q[0] - 120, q[1] + 120)], fill=(30, 30, 30), width=4)
-    d.text((q[0] - 130, q[1] + 130), "hole on top of the last coil", fill=(30, 30, 30), font=fb, anchor="ra")
+    d.text((q[0] - 130, q[1] + 130), "hole on top of a coil", fill=(30, 30, 30), font=fb, anchor="ra")
     img = autocrop(img)
-    panels.append(caption(img, 1, "Before you start: put the insert into the head piece",
-                          "Set the insert on the hole on top of the last coil of the front (orange) piece. Press it\n"
-                          "straight down with a soldering iron (about 230 C for PA-CF/PC) until it is flush. Let it cool.\n"
-                          "Do this once; the set screw threads into it every time you fit the snake.", W=sc.W))
+    panels.append(caption(img, 1, "Before you start: inserts and ball plungers (once)",
+                          "Each snake piece has two round holes on top of coils that cross the rail (4 in all). Press an\n"
+                          "insert into each, flush, with a soldering iron (about 230 C for PA-CF/PC). Let them cool.\n"
+                          "Then screw a ball plunger into the FRONT hole of each piece, ball down, until its body is flush\n"
+                          "with the inside of the coil and only the ball sticks out. It stays there. The back holes take\n"
+                          "the set screws later.", W=sc.W))
 
     # ---- 2. handguard onto the barrel nut
     step([(rifle, DARK), (moved(base, 110), GREY)], 2, "Slide the handguard over the barrel and onto the barrel nut",
@@ -294,37 +300,51 @@ def main():
                           "alternating, to about 2 N m (firm, not cranked). Then put Jack's centre screw back in from below.\n"
                           "Check the rail is lined up with the receiver. Re-check the bolts after the first range trip.", W=sc.W))
 
-    # ---- 4 to 7: the snake
+    # ---- 4 to 8: the snake
+    sp = lambda p, r: [SPOTS[(p, r)][0], 0, SPOTS[(p, r)][1]]
     step([(rifle, DARK), (base, GREY), (moved(rear, 300), GREEN)], 4, "Slide the rear snake piece on over the muzzle",
-         "Tail end first. It slides along the handguard like a sleeve; it does not snap on.\n"
-         "Take off anything bolted to the keymod slots first.",
+         "Tail end first. It slides along the handguard like a sleeve. Take anything bolted to\n"
+         "the keymod slots off first. The plunger clicks over the rail slots as it goes; that is normal.",
          arrows=[((520, 380), g)])
-    step([(rifle, DARK), (base, GREY), (rear, GREEN)], 5, "Push it back until it stops",
-         "It stops against the step near the receiver, where the keymod flats begin.",
-         marks=[([63, 18, 2], "stops here", (40, -150))])
-    step([(rifle, DARK), (base, GREY), (rear, GREEN), (moved(front, 200), ORANGE)], 6, "Slide the front piece (the head) on",
+    step([(rifle, DARK), (base, GREY), (rear, GREEN)], 5, "Push it back until it stops and clicks",
+         "It stops against the step near the receiver and the ball plunger clicks into its rail slot:\n"
+         "it now stays put on its own. To lock it, screw a set screw into its back hole until it bottoms\n"
+         "in the rail slot, then snug (no thread locker; it comes out again).",
+         marks=[(sp("rear", "snap"), "click (plunger)", (0, -70)), (sp("rear", "lock"), "lock (set screw)", (0, -70))])
+    step([(rifle, DARK), (base, GREY), (rear, GREEN), (moved(front, 200), ORANGE)], 6, "Slide the head piece on",
          "The barrel and muzzle device pass through the hole in the head.\n"
-         "Push it back until the head sits against the end of the handguard.",
+         "Push it back until the head sits against the end of the handguard and its plunger clicks.",
          arrows=[((650, 500), o)])
-    step([(rifle, DARK), (base, GREY), (rear, GREEN), (front, ORANGE)], 7, "Tighten the set screw in the last coil",
-         "It goes through the insert into the rail slot under the last coil, so the head\n"
-         "cannot slide off. The head in turn holds the rear piece in place. Snug is enough. Done.",
-         marks=[([LX, 0, LZ], "set screw", (60, -60))])
+    step([(rifle, DARK), (base, GREY), (rear, GREEN), (front, ORANGE)], 7, "Lock the head piece",
+         "Screw its set screw into the back hole until it bottoms in the rail slot, then snug.\n"
+         "Both pieces are now locked to the rail separately:\n"
+         "they cannot move forward, back or around.",
+         marks=[(sp("front", "snap"), "click", (0, -70)), (sp("front", "lock"), "lock", (0, -70))])
     step([(rifle, DARK), (base, GREY), (moved(rear, 150), GREEN), (moved(front, 200), ORANGE)], 8,
-         "To take the snake off: loosen the screw, slide it forward",
-         "Front piece first, then the rear piece, off over the muzzle. The handguard stays on the rifle.",
+         "To take it off: back out both set screws, pull forward",
+         "Unscrew each set screw a few turns (the plungers stay in).\n"
+         "Pull the head forward firmly: it unclicks. Then the rear piece.\n"
+         "Only a hex key is needed; the handguard stays on the rifle.",
          arrows=[((480, 620), o), ((250, 380), g)])
 
     # close-up: the head cut in half down the middle, showing the screw in the rail slot
-    lo2, hi2 = np.array([328.0, -40, -45]), np.array([452.0, 40, 80])
+    lo2, hi2 = np.array([328.0, -40, -70]), np.array([452.0, 40, 80])
     sc2 = Scene([0, 1, 0], UP, lo2, hi2, res=0.1)
     half = lambda m: m.slice_plane([0, 0, 0], [0, 1, 0], cap=True)
-    screw = trimesh.creation.cylinder(radius=2.4, height=11.0, sections=40); screw.apply_translation([LX, 0, HG_RAIL + 5.5])
-    near = lambda m: m.slice_plane([330, 0, 0], [1, 0, 0])
-    cut = sc2.render([(half(near(base)), GREY), (half(near(front)), ORANGE), (half(screw), RED)])
-    d = ImageDraw.Draw(cut); font = ImageFont.truetype(FONT_B, 34)
-    for p, label, off, align in [([LX, 0, LZ], "set screw", (60, -120), "l"),
-                                 ([387.7, 0, -17.5], "the head's inner wall stops\nagainst the end of the handguard", (-330, 170), "l")]:
+    s_bot = HG.RAIL_SLOT_FLOOR + 0.6   # set screw bottomed in the rail slot
+    screw = trimesh.creation.cylinder(radius=2.4, height=16.0, sections=40); screw.apply_translation([LX, 0, s_bot + 8.0])
+    PX, PZ = SPOTS[("front", "snap")]
+    p_bot = HG_RAIL + 0.35   # plunger body flush with the inside of the coil, ball sticking out
+    plunger = trimesh.creation.cylinder(radius=2.4, height=PZ - p_bot, sections=40); plunger.apply_translation([PX, 0, (PZ + p_bot) / 2])
+    ballm = trimesh.creation.icosphere(subdivisions=3, radius=1.5); ballm.apply_translation([PX, 0, p_bot - 0.5])
+    plunger = trimesh.util.concatenate([plunger, ballm])
+    lo2[0] = min(lo2[0], PX - 25); sc2 = Scene([0, 1, 0], UP, lo2, hi2, res=(hi2[0] - lo2[0]) / 1420)
+    near = lambda m: m.slice_plane([lo2[0] + 2, 0, 0], [1, 0, 0])
+    cut = sc2.render([(half(near(base)), GREY), (half(near(front)), ORANGE), (half(screw), RED), (half(plunger), PURPLE)])
+    d = ImageDraw.Draw(cut); font = ImageFont.truetype(FONT_B, 30)
+    for p, label, off, align in [([LX, 0, LZ], "set screw (lock)", (60, -120), "l"),
+                                 ([PX, 0, PZ], "ball plunger (click)", (40, -120), "l"),
+                                 ([387.7, 0, -17.5], "the head's inner wall stops\nagainst the end of the handguard", (-330, 110), "l")]:
         q = sc2.px(p)[0]; t = q + np.array(off)
         d.line([tuple(t), tuple(q)], fill=(30, 30, 30), width=4)
         lines = label.split("\n")
@@ -334,7 +354,7 @@ def main():
             else:
                 d.text((t[0], t[1] - 4 - 40 * (len(lines) - 1 - i)), line, fill=(30, 30, 30), font=font, anchor=align + "d")
     panels.append(caption(cut, None, "Close-up, head cut in half (from the left side)",
-                          "The screw (red) goes down through the last coil into the rail slot under it.\n"
+                          "The plunger (purple) clicks into one rail slot, the set screw (red) locks into another.\n"
                           "The head's inner wall rests against the end of the handguard.", W=sc.W))
 
     panels.append(caption(end_view(base, rear), None, "Why it cannot fall off or spin",

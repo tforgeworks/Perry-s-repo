@@ -11,8 +11,8 @@ snake as a separate part that slides on and off the handguard.
 | file | what it is |
 |---|---|
 | [`handguard_base.stl`](handguard_base.stl) | **The handguard**, a copy of the original (387.2 mm long) |
-| [`snake_rear.3mf`](snake_rear.3mf) | **Snake, rear piece**: tail and first coils, slides on first |
-| [`snake_front.3mf`](snake_front.3mf) | **Snake, front piece**: coils and head, slides on second and locks with one set screw |
+| [`snake_rear.3mf`](snake_rear.3mf) | **Snake, rear piece**: tail and first coils, slides on first; clicks in and locks on its own |
+| [`snake_front.3mf`](snake_front.3mf) | **Snake, front piece**: coils and head, slides on second; clicks in and locks on its own |
 | [`handguard_fit_test.stl`](handguard_fit_test.stl) | The rear 70 mm of the handguard only (bore, lugs, clamp, rail start). **Print this first** to test the fit on the rifle. |
 
 All files are in millimetres, with the bore axis along X (muzzle toward +X), the receiver end at X=0, the rail up (+Z) and the rifle's left side toward +Y.
@@ -95,34 +95,54 @@ scanner smooths the undercut. Standard Picatinny accessories will fit it.
 
 **Full illustrated guide: [renders/assembly_guide.png](renders/assembly_guide.png)**
 
-Nothing snaps on. The handguard clamps onto the barrel nut like the original. The two snake
-pieces slide on over the muzzle like sleeves and are held by one set screw.
+The handguard clamps onto the barrel nut like the original. The two snake pieces slide on over
+the muzzle like sleeves, click into the rail, and lock with a set screw each.
 
 The snake's inside is cut to the handguard's outer shape plus 0.35 mm clearance, with every
 hole, slot and flat filled in. The spiral goes all the way around, so it cannot come off
 sideways, and the flats and the rail stop it from turning. It only moves along the bore axis.
 
-1. **Once, before the first fit**: press the M5 heat-set insert into the hole on top of the
-   last coil of the front piece with a soldering iron (about 230 C for PA-CF/PC), flush.
+Each snake piece snaps and locks into the top rail **on its own**, at two coils that cross the
+rail. Each spot has an M5 heat-set insert straight above a rail slot:
+- **Snap**: a spring ball plunger in the front spot of each piece clicks into its rail slot when
+  the piece is seated. The piece then stays put without tools, and a firm push or pull snaps
+  it on or off.
+- **Lock**: a set screw in the back spot of each piece screws down into its rail slot. The piece
+  then cannot move forward, back or around until you back the screw out.
+
+| piece | snap (ball plunger) | lock (set screw) |
+|---|---|---|
+| rear | rail slot at 120.7 mm | rail slot at 200.7 mm |
+| front (head) | rail slot at 280.7 mm | rail slot at 360.7 mm |
+
+(distances from the receiver end of the handguard)
+
+1. **Once, before the first fit**: press an M5 heat-set insert into each of the four holes on
+   top of the coils, flush, with a soldering iron (about 230 C for PA-CF/PC). Screw a ball
+   plunger into the front hole of each piece, ball down, until its body is flush with the inside
+   of the coil and only the ball sticks out. It stays there.
 2. Slide the **handguard** over the barrel onto the barrel nut, until the two tabs at its rear
    end sit against the receiver. Line its rail up with the receiver's rail.
 3. Drop two **M4 hex nuts** into the hex pockets on the left side of the clamp. Put two
    **M4 x 25 bolts** in from the right with a drop of blue thread locker and tighten them a little
    at a time, alternating, to about 2 N m (firm, not cranked). Then put Jack's **centre screw**
    back in from below. Re-check the bolts after the first range trip.
-4. Slide the **rear snake piece** on over the muzzle, tail first, until it stops against the
-   step where the keymod flats begin, near the receiver.
-5. Slide the **front piece** on behind it. The muzzle device passes through the head. Push it
-   back until the head's inner wall sits against the handguard's muzzle end.
-6. Tighten the **M5 set screw** into the insert. Its tip drops into the rail slot under the
-   last coil, which locks the front piece. The front piece in turn holds the rear piece.
+4. Slide the **rear snake piece** on over the muzzle, tail first, and push it back until it stops
+   against the step where the keymod flats begin. It **clicks** into place. The plunger also clicks
+   over the rail slots on the way, which is normal.
+5. To lock it, screw an **M5 x 16 set screw** into its back hole until it bottoms in the rail slot,
+   then snug.
+6. Slide the **head piece** on. The muzzle device passes through the head. Push it back until the
+   head's inner wall sits against the handguard's muzzle end and it clicks. Lock it with its
+   set screw the same way.
 
-**To take the snake off**, loosen the set screw and slide both pieces forward off the muzzle.
-The handguard stays on the rifle.
+**To take the snake off**, back each set screw out a few turns (the plungers stay in), then pull
+the head forward firmly until it unclicks, then the rear piece. The handguard stays on the rifle.
 
-Hardware: one M5 x 12 set screw (cup or flat point) and one short M5 heat-set insert
-(6.4 mm hole, 6 mm deep). The muzzle device must be under 31 mm in diameter to pass
-through the head; an A2 flash hider or a 7/8 in brake fits.
+Hardware for the snake: 4 x M5 heat-set inserts (6.4 mm hole, 6 mm deep), 2 x M5 x 14 spring ball
+plungers (slotted, steel ball, standard force) and 2 x M5 x 16 set screws (cup point). The muzzle
+device must be under 31 mm in diameter to pass through the head; an A2 flash hider or a 7/8 in
+brake fits.
 
 ## Printing (0.4 mm nozzle, 0.2 mm layers)
 
@@ -215,7 +235,7 @@ python verify.py ../handguard_base.stl ../work/tris_al.npy --out ../verification
 | `measure_templates.py` | unrolls the outer skin and averages every hole of each type into one outline (`data/hole_templates.json`) |
 | `build_handguard.py` | CSG model (manifold3d): tube with keymod flats, Picatinny rail, hollow rail channel, lugs, clamp block, every cut-out at its measured pitch |
 | `meshy_client.py` | submits the concept picture to Meshy and downloads the result (API key from `MESHY_API_KEY`, never stored) |
-| `fit_meshy_snake.py` | builds the spiral body, fits Meshy's head, cuts the slide-on envelope, barrel passage and lock screw, splits into two pieces |
+| `fit_meshy_snake.py` | builds the spiral body, fits Meshy's head, cuts the slide-on envelope, barrel passage and the snap and lock holes (`data/snake_lock.json`), splits into two pieces |
 | `build_snake.py` | the shared fit constants and envelope; also the earlier hand-modelled snake (no longer used for the print files) |
 | `verify.py` | scan-to-model distances, with the bolted-on accessories masked out |
 | `strength_check.py` | beam analysis of the handguard from its real cross-sections (`verification/strength.json`) |

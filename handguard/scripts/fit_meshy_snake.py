@@ -291,7 +291,7 @@ def strip_slivers(tm):
     if len(drop):
         keep = np.ones(len(tm.faces), bool); keep[drop] = False
         tm = trimesh.Trimesh(tm.vertices, tm.faces[keep], process=False)
-        tm.remove_unreferenced_vertices()
+    tm.merge_vertices(); tm.remove_unreferenced_vertices()
     return tm, len(drop)
 
 
@@ -376,14 +376,16 @@ def main():
     snake = snake + throat
     passage = HG.cyl_x(BS.PASSAGE_R, HG.X_END - 0.5, 470.0)
     snake = snake - passage
-    # lock screw: down through the last coil that crosses the top rail, into the rail slot
-    # under it (heat-set insert in the coil, set screw tip in the slot)
+    # snap and lock: every coil that crosses the top rail gets an M5 heat-set insert hole straight
+    # above a rail slot. Each piece has two: one takes a spring ball plunger (clicks into the slot
+    # when the piece is seated, push or pull by hand to snap or unsnap), the other a set screw
+    # (screw down into the slot to lock the piece for shooting).
     x0 = origin[0]; iy = int(round((0.0 - origin[1]) / H))
     zs = origin[2] + np.arange(vol.shape[2]) * H
-    best = None
+    locks = []
     for k in range(HG.RAIL_SLOTS):
         xc = HG.RAIL_SLOT_X0 + k * HG.RAIL_PITCH
-        if not (a.split + 12 < xc < HG.X_END - 10):
+        if not (HELIX_X[0] + 20 < xc < HG.X_END - 10) or abs(xc - a.split) < 5:
             continue
         cols = vol[int(round((xc - 3.5 - x0) / H)):int(round((xc + 3.5 - x0) / H)) + 1, iy - 14:iy + 15]
         solid = (cols > 0.5).all(axis=(0, 1))   # material over a 7 x 7 mm footprint
@@ -391,18 +393,24 @@ def main():
         if len(z) == 0 or zs[z[0]] > HG.RAIL_TOP + 2.0:
             continue
         top = zs[z[0] + np.flatnonzero(np.diff(np.r_[z, -10]) != 1)[0]]
-        if best is None or xc > best[0]:
-            best = (xc, top)
-    if best is None or best[1] - BS.LOCK_INSERT_L < HG.RAIL_TOP + BS.CLEARANCE + 2.0:
-        raise SystemExit("no coil over the rail is thick enough for the lock screw")
-    lock_x, top = best
-    print(f"lock screw: rail slot at X={lock_x:.1f}, coil top Z={top:.2f} (rail top {HG.RAIL_TOP})")
-    insert = Manifold.cylinder(BS.LOCK_INSERT_L + 8, BS.LOCK_INSERT_D / 2, BS.LOCK_INSERT_D / 2, 48) \
-        .translate((lock_x, 0, top - BS.LOCK_INSERT_L))
-    clear = Manifold.cylinder(top - HG.RAIL_TOP + 2, BS.LOCK_SCREW_D / 2, BS.LOCK_SCREW_D / 2, 48) \
-        .translate((lock_x, 0, HG.RAIL_TOP - 1))
-    snake = snake - insert - clear
-    json.dump({"lock_x": lock_x, "coil_top": round(float(top), 2)}, open(os.path.join(HERE, "..", "data", "snake_lock.json"), "w"))
+        if top - BS.LOCK_INSERT_L < HG.RAIL_TOP + BS.CLEARANCE + 2.0:
+            continue
+        locks.append((xc, float(top)))
+    rear = [l for l in locks if l[0] < a.split]; front = [l for l in locks if l[0] > a.split]
+    if len(rear) < 2 or len(front) < 2:
+        raise SystemExit(f"need two rail crossings per piece for snap + lock, found {locks}")
+    plan = {"rear": {"snap": rear[0], "lock": rear[-1]}, "front": {"snap": front[0], "lock": front[-1]}}
+    for piece, d in plan.items():
+        for role, (xc, top) in d.items():
+            print(f"{piece} {role}: rail slot X={xc:.1f}, coil top Z={top:.2f}")
+            insert = Manifold.cylinder(BS.LOCK_INSERT_L + 8, BS.LOCK_INSERT_D / 2, BS.LOCK_INSERT_D / 2, 48) \
+                .translate((xc, 0, top - BS.LOCK_INSERT_L))
+            clear = Manifold.cylinder(top - HG.RAIL_TOP + 2, BS.LOCK_SCREW_D / 2, BS.LOCK_SCREW_D / 2, 48) \
+                .translate((xc, 0, HG.RAIL_TOP - 1))
+            snake = snake - insert - clear
+    json.dump({p: {r: {"x": round(xc, 2), "coil_top": round(top, 2)} for r, (xc, top) in d.items()}
+               for p, d in plan.items()},
+              open(os.path.join(HERE, "..", "data", "snake_lock.json"), "w"), indent=1)
     if a.tolerance > 0:
         snake = snake.simplify(a.tolerance)
     base = HG.build(json.load(open(os.path.join(HERE, "..", "data", "hole_templates.json"))))
