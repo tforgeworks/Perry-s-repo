@@ -1,0 +1,15 @@
+{
+ "id": "01a18512-81a4-7570-b672-aaee1435b0f6",
+ "type": "image-to-3d",
+ "status": "SUCCEEDED",
+ "created_at": 1793233945580,
+ "finished_at": 1793234019945,
+ "expires_at": 1793493219945,
+ "consumed_credits": 25,
+ "input_image": "work/meshy/in_snake_hg.jpg (crop of the customer concept, MMS 2026-10-17)",
+ "settings": {
+  "ai_model": "latest",
+  "should_texture": false,
+  "geometry_resolution": "4k"
+ }
+}

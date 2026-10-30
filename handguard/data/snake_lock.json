@@ -1,0 +1,108 @@
+{
+ "joint_x": 227.8,
+ "joint_planes": [
+  {
+   "strand": "left",
+   "point": [
+    227.79,
+    25.76,
+    0.09
+   ],
+   "normal": [
+    0.8475,
+    -0.0789,
+    -0.525
+   ]
+  },
+  {
+   "strand": "right",
+   "point": [
+    227.79,
+    -26.76,
+    -0.06
+   ],
+   "normal": [
+    0.8437,
+    -0.0746,
+    -0.5317
+   ]
+  }
+ ],
+ "tabs": [
+  {
+   "strand": "left",
+   "y": 25.74,
+   "z": 5.09,
+   "theta": 89.8,
+   "face_x": 230.89
+  },
+  {
+   "strand": "left",
+   "y": 25.77,
+   "z": -2.91,
+   "theta": 89.8,
+   "face_x": 225.93
+  },
+  {
+   "strand": "right",
+   "y": -26.76,
+   "z": -3.06,
+   "theta": -90.1,
+   "face_x": 225.9
+  },
+  {
+   "strand": "right",
+   "y": -26.77,
+   "z": 4.94,
+   "theta": -90.1,
+   "face_x": 230.94
+  }
+ ],
+ "tab_size_mm": [
+  4.5,
+  5.0,
+  5.0
+ ],
+ "bolts": {
+  "rear": [
+   {
+    "side": "left",
+    "x": 153.16,
+    "bears_on": "rear end of the keymod hole",
+    "hole_end_x": 150.46,
+    "screw": "M5x12 socket head cap screw",
+    "insert_top_y": 28.5,
+    "surface_y": 34.37
+   },
+   {
+    "side": "right",
+    "x": 153.16,
+    "bears_on": "rear end of the keymod hole",
+    "hole_end_x": 150.46,
+    "screw": "M5x12 socket head cap screw",
+    "insert_top_y": -28.5,
+    "surface_y": -36.38
+   }
+  ],
+  "front": [
+   {
+    "side": "left",
+    "x": 265.2,
+    "bears_on": "front end of the keymod hole",
+    "hole_end_x": 267.95,
+    "screw": "M5x16 socket head cap screw",
+    "insert_top_y": 32.5,
+    "surface_y": 38.39
+   },
+   {
+    "side": "right",
+    "x": 265.2,
+    "bears_on": "front end of the keymod hole",
+    "hole_end_x": 267.95,
+    "screw": "M5x16 socket head cap screw",
+    "insert_top_y": -32.5,
+    "surface_y": -37.55
+   }
+  ]
+ }
+}
