@@ -123,8 +123,62 @@ def apply_radial(V, thc, delta):
     return np.c_[X, Y * s, Z * s]
 
 
+# ---- the body: one continuous spiral (Meshy's coils stop at the rail and the flat bottom) ----
+HELIX_X = (64.0, 384.0)    # starts behind the rear clamp block, ends inside Meshy's head
+HELIX_TURNS = 4.0
+HELIX_THETA0 = 100.0       # deg, 0 = top (rail), +90 = left side
+R_HELIX = 9.5              # body radius
+HELIX_EMBED = 0.3          # fraction of the body radius below the handguard surface (cut off as the belly)
+MESHY_HEAD_X = (368.0, 384.0)   # Meshy's model fades in over this X range (only its head is used)
+
+
+class HelixBody(BS.Body):
+    """A swept, scaled snake body along a helix around the bore axis. At each angle the
+    helix sits on the handguard's outer surface (the max over a small angular window, so it
+    rides over the rail rather than into it)."""
+
+    def __init__(self, front_polys, rear_polys, step=0.1):
+        nb = 720
+        thb = (np.arange(nb) + 0.5) / nb * 2 * np.pi - np.pi
+        win = int(round(8 / 360 * nb))
+        def surf(polys):
+            r = surface_radius(polys, thb)
+            return np.max([np.roll(r, k) for k in range(-win, win + 1)], axis=0)
+        sf, sr = surf(front_polys), surf(rear_polys)
+        x0, x1 = HELIX_X
+        x = np.linspace(x0, x1, 200001)
+        th = np.radians(HELIX_THETA0 + 360.0 * HELIX_TURNS * (x - x0) / (x1 - x0))
+        thw = np.angle(np.exp(1j * th))
+        rs = np.where(x < BS.STEP_X, np.interp(thw, thb, sr, period=2 * np.pi), np.interp(thw, thb, sf, period=2 * np.pi))
+        rs = ndi.gaussian_filter1d(rs, 400)   # smooth the steps of the profile along the path
+        rho = rs + (1 - HELIX_EMBED) * R_HELIX
+        C = np.c_[x, rho * np.sin(th), rho * np.cos(th)]
+        seg = np.linalg.norm(np.diff(C, axis=0), axis=1)
+        sc = np.r_[0, np.cumsum(seg)]
+        self.s = np.arange(0, sc[-1], step)
+        self.C = np.c_[[np.interp(self.s, sc, C[:, k]) for k in range(3)]].T
+        self.r = np.full(len(self.s), R_HELIX)
+        self.T, self.N, self.B = BS.frames(self.C)
+        self.tree = BS.cKDTree(self.C)
+        self.L = self.s[-1]
+        # larger, deeper keeled scales, close to Meshy's
+        self.scale_n, self.scale_row, self.scale_depth, self.keel_h = 14, 4.2, 0.9, 0.35
+
+
+def helix_occ(body, X3, Yg, Zg):
+    P = np.stack(np.broadcast_arrays(X3, Yg[None], Zg[None]), -1).reshape(-1, 3)
+    r = np.hypot(P[:, 1], P[:, 2])
+    near = (r > 12.0) & (P[:, 0] > HELIX_X[0] - R_HELIX - 1) & (P[:, 0] < HELIX_X[1] + R_HELIX + 1)
+    occ = np.zeros(len(P), np.float32)
+    if near.any():
+        d = body.sdf(P[near])
+        occ[near] = np.clip(0.5 - d / H, 0, 1)
+    return occ.reshape(np.broadcast_shapes(X3.shape, Yg[None].shape))
+
+
 # ---- voxel stage ----
 def build_field(V, F, front_polys, rear_polys, x_range=(HG.X_FACE, 452.0), slab=30.0):
+    body = HelixBody(front_polys, rear_polys)
     y0, y1, z0, z1 = -44.0, 44.0, -44.0, 52.0
     ys = y0 + np.arange(int((y1 - y0) / H) + 1) * H
     zs = z0 + np.arange(int((z1 - z0) / H) + 1) * H
@@ -162,6 +216,7 @@ def build_field(V, F, front_polys, rear_polys, x_range=(HG.X_FACE, 452.0), slab=
         # in front of the handguard there is no handguard to strip: only the barrel passage
         keep = ((d_env > gap) | (X3 > HG.X_END + BS.CLEARANCE)) & ~sight & ~muzzle & (X3 > HG.X_FACE + 3.0)
         snake = np.where(keep, occ, 0.0).astype(np.float32)
+        snake = snake * BS.smoothstep(*MESHY_HEAD_X, X3)   # tapers the back of the head instead of a flat cut
         # pads: fill the band between the handguard and the trimmed snake, but only straight
         # under a coil (looking radially outward), so every coil bears on the handguard
         band = (d_env >= -0.5) & (d_env <= gap + 0.5) & (X3 > HG.X_FACE + 3.0) & (X3 < HG.X_END)
@@ -177,31 +232,27 @@ def build_field(V, F, front_polys, rear_polys, x_range=(HG.X_FACE, 452.0), slab=
                 hit |= ndi.map_coordinates(snake, c, order=1, mode="constant") > 0.5
             pad[bi[0][hit], bi[1][hit], bi[2][hit]] = 1.0
         pad = ndi.gaussian_filter(pad, 0.6)
-        field = np.maximum(np.maximum(snake, pad), saddle_occ(X3, Yg, Zg))
+        field = np.maximum(np.maximum(snake, pad), hinge_occ(X3, Yg, Zg))
+        field = np.maximum(field, helix_occ(body, X3, Yg, Zg))
+        # rear clamp: cross bolts, centre screw and slit stay free
+        field = np.where((X3 < 64.0) & (Zg[None] < -14.0), 0.0, field)
         fields.append(field[a - lo: a - lo + min(nsl, len(xs_all) - a)])
         print(f"  voxel slab X {xs_all[a]:.0f}..{xs_all[min(a + nsl, len(xs_all) - 1)]:.0f}  {time.time() - t0:.0f}s", flush=True)
     vol = np.concatenate(fields, axis=0)
     return vol, (xs_all[0], ys[0], zs[0])
 
 
-SADDLE = ((352.0, 0.0, 31.0), (394.0, 0.0, 32.5), 9.5)   # neck arching over the rail into the head
-COLLAR = (364.0, 394.0, 25.5, -6.0)   # X range, outer radius, top Z: joins the last coil to the head
 CHEEKS = [((388.0, s * 17.0, -6.0), (401.0, s * 12.5, -22.0), 4.5) for s in (1, -1)]  # jaw hinges
 
 
-def saddle_occ(X3, Yg, Zg):
-    """Occupancy of the scaled additions: the neck saddle over the end of the rail (holds the
-    lock screw), the two jaw hinges (the barrel passage cuts Meshy's jaw off at the middle) and
-    a collar under the handguard's end that joins the last coil to the head."""
+def hinge_occ(X3, Yg, Zg):
+    """Occupancy of the two scaled jaw hinges (the barrel passage cuts Meshy's jaw off at the middle)."""
     P = np.stack(np.broadcast_arrays(X3, Yg[None], Zg[None]), -1).reshape(-1, 3)
-    near = (P[:, 0] > 340.0) & (P[:, 0] < 412.0) & ((P[:, 2] > 18.0) | (P[:, 2] < 2.0))
+    near = (P[:, 0] > 380.0) & (P[:, 0] < 410.0) & (P[:, 2] < 2.0) & (np.abs(P[:, 1]) > 6.0)
     occ = np.zeros(len(P), np.float32)
     if near.any():
         Q = P[near]
-        d = np.minimum.reduce([BS.capsule(Q, a, b, ra, ra) for a, b, ra in [SADDLE] + CHEEKS])
-        x0c, x1c, rc, zc = COLLAR   # the inside is cut later by the slide-on envelope
-        collar = np.maximum.reduce([np.hypot(Q[:, 1], Q[:, 2]) - rc, x0c - Q[:, 0], Q[:, 0] - x1c, Q[:, 2] - zc])
-        d = np.minimum(d, BS.smin(collar, d, 3.0))
+        d = np.minimum.reduce([BS.capsule(Q, a, b, ra, ra) for a, b, ra in CHEEKS])
         d1, d2, f1 = BS.worley(Q * np.array([0.75, 1.0, 1.0]), BS.HEAD_CELL)
         edge = BS.smoothstep(0.0, 0.3 * BS.HEAD_CELL, d2 - d1)
         lift = np.clip(0.5 - (Q[:, 0] * 0.75 - f1[:, 0]) / BS.HEAD_CELL, 0, 1)
@@ -246,18 +297,33 @@ def main():
     # barrel passage through the head
     passage = HG.cyl_x(BS.PASSAGE_R, HG.X_END - 0.5, 470.0)
     snake = snake - passage
-    # lock screw: through the neck saddle into the last rail slot (heat-set insert in the saddle)
-    hits = trimesh.intersections.mesh_plane(snake_tm, [1, 0, 0], [BS.LOCK_X, 0, 0])
-    zs = [z for seg in hits for (x, y, z) in seg if abs(y) < 0.6 and z > HG.RAIL_TOP]
-    top = max(zs) if zs else None
-    print("saddle top above the lock slot:", None if top is None else round(top, 2))
-    if top is None or top - BS.LOCK_INSERT_L < HG.RAIL_TOP + BS.CLEARANCE + 2.0:
-        raise SystemExit("not enough material above the last rail slot for the lock screw")
+    # lock screw: down through the last coil that crosses the top rail, into the rail slot
+    # under it (heat-set insert in the coil, set screw tip in the slot)
+    x0 = origin[0]; iy = int(round((0.0 - origin[1]) / H))
+    zs = origin[2] + np.arange(vol.shape[2]) * H
+    best = None
+    for k in range(HG.RAIL_SLOTS):
+        xc = HG.RAIL_SLOT_X0 + k * HG.RAIL_PITCH
+        if not (a.split + 12 < xc < HG.X_END - 10):
+            continue
+        cols = vol[int(round((xc - 3.5 - x0) / H)):int(round((xc + 3.5 - x0) / H)) + 1, iy - 14:iy + 15]
+        solid = (cols > 0.5).all(axis=(0, 1))   # material over a 7 x 7 mm footprint
+        z = np.flatnonzero(solid & (zs > HG.RAIL_TOP + 1.0))
+        if len(z) == 0 or zs[z[0]] > HG.RAIL_TOP + 2.0:
+            continue
+        top = zs[z[0] + np.flatnonzero(np.diff(np.r_[z, -10]) != 1)[0]]
+        if best is None or xc > best[0]:
+            best = (xc, top)
+    if best is None or best[1] - BS.LOCK_INSERT_L < HG.RAIL_TOP + BS.CLEARANCE + 2.0:
+        raise SystemExit("no coil over the rail is thick enough for the lock screw")
+    lock_x, top = best
+    print(f"lock screw: rail slot at X={lock_x:.1f}, coil top Z={top:.2f} (rail top {HG.RAIL_TOP})")
     insert = Manifold.cylinder(BS.LOCK_INSERT_L + 8, BS.LOCK_INSERT_D / 2, BS.LOCK_INSERT_D / 2, 48) \
-        .translate((BS.LOCK_X, 0, top - BS.LOCK_INSERT_L))
+        .translate((lock_x, 0, top - BS.LOCK_INSERT_L))
     clear = Manifold.cylinder(top - HG.RAIL_TOP + 2, BS.LOCK_SCREW_D / 2, BS.LOCK_SCREW_D / 2, 48) \
-        .translate((BS.LOCK_X, 0, HG.RAIL_TOP - 1))
+        .translate((lock_x, 0, HG.RAIL_TOP - 1))
     snake = snake - insert - clear
+    json.dump({"lock_x": lock_x, "coil_top": round(float(top), 2)}, open(os.path.join(HERE, "..", "data", "snake_lock.json"), "w"))
     if a.tolerance > 0:
         snake = snake.simplify(a.tolerance)
     base = HG.build(json.load(open(os.path.join(HERE, "..", "data", "hole_templates.json"))))

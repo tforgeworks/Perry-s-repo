@@ -138,7 +138,7 @@ class Body:
         self.L = self.s[-1]
 
     def sdf(self, P, far=1e3):
-        d, i = self.tree.query(P, distance_upper_bound=R_BODY + 4.0, workers=-1)
+        d, i = self.tree.query(P, distance_upper_bound=self.r.max() + 4.0, workers=-1)
         out = np.full(len(P), far, np.float32)
         ok = np.isfinite(d)
         if not ok.any():
@@ -158,8 +158,10 @@ class Body:
 
     def scales(self, s, v, r):
         """Keeled, overlapping diamond scales (displacement, positive = groove)."""
-        L = SCALE_ROW
-        W = 2 * np.pi / SCALE_N
+        L = getattr(self, "scale_row", SCALE_ROW)
+        W = 2 * np.pi / getattr(self, "scale_n", SCALE_N)
+        depth = getattr(self, "scale_depth", SCALE_DEPTH)
+        keel_h = getattr(self, "keel_h", KEEL_H)
         best = np.full(len(s), 9.0); second = np.full(len(s), 9.0)
         cu_best = np.zeros(len(s)); dw_best = np.zeros(len(s))
         i0 = np.floor(s / L)
@@ -179,12 +181,12 @@ class Body:
                 best = np.where(better, m, best)
         edge = smoothstep(0.0, 0.35, second - best)            # 0 on the seams
         ramp = 0.55 + 0.45 * np.clip(0.5 - cu_best, 0, 1)      # free edge toward the tail
-        keel = KEEL_H * np.exp(-(dw_best / 0.12) ** 2) * smoothstep(0.0, 0.3, second - best)
-        bump = SCALE_DEPTH * edge * ramp + keel
+        keel = keel_h * np.exp(-(dw_best / 0.12) ** 2) * smoothstep(0.0, 0.3, second - best)
+        bump = depth * edge * ramp + keel
         # belly (facing the handguard) stays smooth; scale size fades with the tail
         dorsal = smoothstep(0.6, 1.3, np.abs(v))
         fade = smoothstep(2.0, 4.5, r)
-        return (SCALE_DEPTH - bump) * dorsal * fade
+        return (depth - bump) * dorsal * fade
 
 
 # ------------------------------------------------------------------ head SDF

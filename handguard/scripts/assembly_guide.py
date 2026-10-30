@@ -5,6 +5,7 @@ for the rifle (receiver block, barrel, muzzle device), colour-coded, with arrows
 and captions, plus a cut-away of the lock screw and a cross-section showing why
 the snake cannot lift off or turn. Output: renders/assembly_guide.png
 """
+import json
 import os
 
 import numpy as np
@@ -16,6 +17,9 @@ ROOT = os.path.join(HERE, "..")
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FONT_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
+LOCK = json.load(open(os.path.join(ROOT, "data", "snake_lock.json")))
+HG_RAIL = 31.1
+LX, LZ = LOCK["lock_x"], LOCK["coil_top"]
 GREY = np.array([0.72, 0.74, 0.77])      # handguard
 DARK = np.array([0.30, 0.31, 0.33])      # rifle stand-in
 GREEN = np.array([0.36, 0.66, 0.36])     # snake rear piece
@@ -183,10 +187,10 @@ def main():
          "The barrel and muzzle device pass through the hole in the head.\n"
          "Push it back until the head sits against the end of the handguard.",
          arrows=[((650, 500), o)])
-    step([(rifle, DARK), (base, GREY), (rear, GREEN), (front, ORANGE)], 5, "Tighten the one set screw on top of the head",
-         "The screw drops into the last rail slot, so the head cannot slide off.\n"
+    step([(rifle, DARK), (base, GREY), (rear, GREEN), (front, ORANGE)], 5, "Tighten the one set screw in the last coil",
+         "The screw drops into the rail slot under the last coil, so the head cannot slide off.\n"
          "The head in turn holds the rear piece in place. Done.",
-         marks=[([370.7, 0, 41], "set screw", (0, -110))])
+         marks=[([LX, 0, LZ], "set screw", (0, -110))])
     step([(rifle, DARK), (base, GREY), (moved(rear, 150), GREEN), (moved(front, 200), ORANGE)], 6,
          "To take it off: loosen the screw, slide both pieces forward",
          "Front piece first, then the rear piece, off over the muzzle.",
@@ -196,11 +200,11 @@ def main():
     lo2, hi2 = np.array([328.0, -40, -45]), np.array([452.0, 40, 80])
     sc2 = Scene([0, 1, 0], UP, lo2, hi2, res=0.1)
     half = lambda m: m.slice_plane([0, 0, 0], [0, 1, 0], cap=True)
-    screw = trimesh.creation.cylinder(radius=2.4, height=11.0, sections=40); screw.apply_translation([370.7, 0, 34.0])
+    screw = trimesh.creation.cylinder(radius=2.4, height=11.0, sections=40); screw.apply_translation([LX, 0, HG_RAIL + 5.5])
     near = lambda m: m.slice_plane([330, 0, 0], [1, 0, 0])
     cut = sc2.render([(half(near(base)), GREY), (half(near(front)), ORANGE), (half(screw), RED)])
     d = ImageDraw.Draw(cut); font = ImageFont.truetype(FONT_B, 34)
-    for p, label, off, align in [([370.7, 0, 41.5], "set screw", (60, -120), "l"),
+    for p, label, off, align in [([LX, 0, LZ], "set screw", (60, -120), "l"),
                                  ([387.7, 0, -17.5], "the head's inner wall stops\nagainst the end of the handguard", (-330, 170), "l"),
                                  ([350.7, 0, 31.2], "the other rail slots stay free", (-120, -120), "l")]:
         q = sc2.px(p)[0]; t = q + np.array(off)
@@ -212,7 +216,7 @@ def main():
             else:
                 d.text((t[0], t[1] - 4 - 40 * (len(lines) - 1 - i)), line, fill=(30, 30, 30), font=font, anchor=align + "d")
     panels.append(caption(cut, None, "Close-up, head cut in half (from the left side)",
-                          "The screw (red) goes through the top of the head into the last rail slot.\n"
+                          "The screw (red) goes down through the last coil into the rail slot under it.\n"
                           "The head's inner wall rests against the end of the handguard.", W=sc.W))
 
     panels.append(caption(end_view(base, rear), None, "Why it cannot fall off or spin",
