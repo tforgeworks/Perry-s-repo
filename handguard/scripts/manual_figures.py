@@ -39,18 +39,27 @@ def save(img, name):
 def main():
     os.makedirs(OUT, exist_ok=True)
     base = trimesh.load(os.path.join(ROOT, "handguard_base.stl"))
-    rear = trimesh.load(os.path.join(ROOT, "snake_rear.3mf"), force="mesh")
+    rear = trimesh.load(os.path.join(ROOT, f"snake_rear{SUFFIX}.3mf"), force="mesh")
+    # bipod rail version: the bottom cut leaves the tails as a third piece; drawn with the rear piece
+    tail_f = os.path.join(ROOT, "snake_tail_bipod_rail.3mf")
+    tail = trimesh.load(tail_f, force="mesh") if RAIL and os.path.exists(tail_f) else None
+    rear_all = trimesh.util.concatenate([rear, tail]) if tail is not None else rear
     front = trimesh.load(os.path.join(ROOT, f"snake_front{SUFFIX}.3mf"), force="mesh")
     L = AG.LOCK
     view = np.array([0.0, -0.86, -0.51])
 
     # 1. the parts, laid out
     sc = AG.Scene(view, AG.UP, np.array([-10.0, -60, -130]), np.array([520.0, 60, 70]), res=0.45)
-    img = sc.render([(base, LIGHT), (AG.moved_z(rear, -100), MID), (AG.moved_z(AG.moved(front, 50), -100), DARKER)])
+    items = [(base, LIGHT), (AG.moved_z(rear, -100), MID), (AG.moved_z(AG.moved(front, 50), -100), DARKER)]
+    if tail is not None:
+        items.append((AG.moved_z(tail, -100), BLACK))
+    img = sc.render(items)
     d = ImageDraw.Draw(img)
     label(d, sc, [200, 0, 40], "your handguard (not included)", (0, -40))
     label(d, sc, [120, -30, -135], "A  snake rear piece", (0, 60))
     label(d, sc, [390, -30, -135], "B  snake head piece", (0, 60))
+    if tail is not None:
+        label(d, sc, [45, -30, -135], "C  tail piece", (0, 60))
     save(img, "fig_parts.png")
 
     # 2. heat-set insert (rear piece, left bolt)
@@ -101,8 +110,8 @@ def main():
 
     # 6. assembled, rifle's left side, with the bolt positions marked
     sca = AG.Scene([0, -1, 0], AG.UP, np.array([-5.0, -50, -50]), np.array([470.0, 50, 60]), res=0.3)
-    asm = trimesh.util.concatenate([base, rear, front])
-    img = sca.render([(base, LIGHT), (rear, MID), (front, DARKER)])
+    asm = trimesh.util.concatenate([base, rear_all, front])
+    img = sca.render([(base, LIGHT), (rear_all, MID), (front, DARKER)])
     d = ImageDraw.Draw(img)
     for p in ("rear", "front"):
         b = [q for q in L["bolts"][p] if q["side"] == "left"][0]
@@ -111,13 +120,13 @@ def main():
     del asm
 
     if RAIL:
-        # 6. from below: the head piece cut away over the whole accessory rail
+        # 6. from below: the snake cut away along the whole bottom
         R = json.load(open(os.path.join(ROOT, "data", "bipod_rail.json")))
         (x0, x1), w, zb = R["rail_x"], R["rail_half_width"], R["rail_bottom_z"]
         rail = trimesh.creation.box(extents=[x1 - x0, 2 * w, -18.55 - zb])
         rail.apply_translation([(x0 + x1) / 2, 0, (zb - 18.55) / 2])
-        scr = AG.Scene([-0.35, -0.45, 0.82], AG.UP, np.array([200.0, -50, -60]), np.array([470.0, 50, 50]), res=0.18)
-        img = scr.render([(base, LIGHT), (rear, MID), (front, DARKER), (rail, BLACK)])
+        scr = AG.Scene([-0.35, -0.45, 0.82], AG.UP, np.array([-5.0, -50, -60]), np.array([470.0, 50, 50]), res=0.25)
+        img = scr.render([(base, LIGHT), (rear_all, MID), (front, DARKER), (rail, BLACK)])
         d = ImageDraw.Draw(img)
         label(d, scr, [(x0 + x1) / 2, 0, zb], "bottom accessory rail: fully open", (0, 150))
         save(img, "fig_rail.png")

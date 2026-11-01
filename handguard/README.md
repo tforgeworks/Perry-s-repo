@@ -13,7 +13,7 @@ snake as a separate part that slides on and off the handguard.
 | [`handguard_base.stl`](handguard_base.stl) | **The handguard**, a copy of the original (387.2 mm long) |
 | [`snake_rear.3mf`](snake_rear.3mf) | **Snake, rear piece**: the two tails and the rear half of both bodies; slides on first, two side bolts |
 | [`snake_front.3mf`](snake_front.3mf) | **Snake, front piece**: the front half of both bodies and the head; slides on second, two side bolts |
-| [`snake_front_bipod_rail.3mf`](snake_front_bipod_rail.3mf) | **Bipod rail version** of the head piece: the same piece with the snake cut away under the front of the handguard, so a bottom accessory rail and bipod go on and off with the snake installed (use it with the standard `snake_rear.3mf`; see below) |
+| [`snake_rear_bipod_rail.3mf`](snake_rear_bipod_rail.3mf), [`snake_front_bipod_rail.3mf`](snake_front_bipod_rail.3mf) | **Bipod rail version** of the two snake pieces: the same snake cut away along the whole bottom of the handguard, so a bottom accessory rail and bipod go on and off with the snake installed (see below) |
 | [`handguard_fit_test.stl`](handguard_fit_test.stl) | The rear 70 mm of the handguard only (bore, lugs, clamp, rail start). **Print this first** to test the fit on the rifle. |
 
 All files are in millimetres, with the bore axis along X (muzzle toward +X), the receiver end at X=0, the rail up (+Z) and the rifle's left side toward +Y.
@@ -164,14 +164,19 @@ head; an A2 flash hider or a 7/8 in brake fits.
 
 The scan shows a Picatinny accessory rail bolted to the bottom keymod holes at the front of the
 handguard (X 257 to 376 mm, 21 mm wide, hanging 9.7 mm below the bottom flat), which carries the
-bipod. In this version (`scripts/bipod_rail_cut.py`) the head piece is cut away with one straight,
-level cut: everything of the snake below Z = -15 mm (3.5 mm above the handguard's bottom face)
-between X 255.5 and 378 mm is deleted, so nothing of the snake is under the handguard there. The
-cut covers the whole rail: cutting only the first loop (the boxed area) would leave the rear 14 mm
-of the scanned rail under the next loop. Everything else is the same as the standard pieces, and
-the rear piece is the standard `snake_rear.3mf`. The head piece stays one part (watertight, no loose
-fragments, no overlap with the handguard or the rail). The rail, its screws and the bipod go on and
-come off with the snake in place.
+bipod. In this version (`scripts/bipod_rail_cut.py`) both pieces are cut with one straight, level
+cut: everything of the snake below Z = -15 mm (3.5 mm above the handguard's bottom face) is deleted
+along the whole handguard, through all four loops under it, up to X 378 mm (the head in front of the
+handguard is kept). The bottom is uniform, and the rail, its screws and the bipod go on and come off
+with the snake in place.
+
+Cutting the bottom crossing at X 88 mm would cut the rear-most loop (with the tails) off the rear
+piece, so a short strip on each side (X 77 to 97 mm, Z -15 to -8.5 mm, hugging the handguard just
+above the cut) joins it to the next body: the rear piece stays one part. Each piece still wraps more
+than halfway round the handguard (a 27 mm opening along the bottom, against a 36 mm wide handguard),
+so it can only slide along it; the bolts, tabs and joint are the same as the standard pieces. Both
+pieces are watertight, with no loose fragments, no overlap with the handguard or the rail, and slide
+on without catching.
 User manual: [manual/bipod_rail/Snake_Handguard_Kit_Bipod_Rail_User_Manual.docx](manual/bipod_rail/Snake_Handguard_Kit_Bipod_Rail_User_Manual.docx)
 ([PDF](manual/bipod_rail/Snake_Handguard_Kit_Bipod_Rail_User_Manual.pdf)).
 
@@ -262,7 +267,7 @@ python build_double_helix.py     # about 40 min, writes snake_rear/front.3mf and
 python render_snake.py           # renders/snake_*.png
 python assembly_guide.py         # renders/assembly_guide.png
 python manual_figures.py && node build_manual.js   # manual/Snake_Handguard_Kit_User_Manual.docx
-python bipod_rail_cut.py         # bipod rail version: snake_front_bipod_rail.3mf, data/bipod_rail.json
+python bipod_rail_cut.py         # bipod rail version: snake_rear/front_bipod_rail.3mf, data/bipod_rail.json
 SNAKE_VARIANT=bipod_rail python manual_figures.py && SNAKE_VARIANT=bipod_rail node build_manual.js
 python verify.py ../handguard_base.stl ../work/tris_al.npy --out ../verification/verification.json --fig ../verification/deviation_map.png
 ```
