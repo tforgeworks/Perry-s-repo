@@ -3,6 +3,7 @@
 Reuses the assembly guide's renderer with a grey palette: the handguard light grey, the rear
 snake piece mid grey, the head piece darker, hardware black.
 """
+import json
 import os
 
 import numpy as np
@@ -12,7 +13,9 @@ from PIL import ImageDraw, ImageFont
 import assembly_guide as AG
 
 ROOT = AG.ROOT
-OUT = os.path.join(ROOT, "manual")
+RAIL = os.environ.get("SNAKE_VARIANT") == "bipod_rail"   # the version with a channel for the bottom accessory rail
+SUFFIX = "_bipod_rail" if RAIL else ""
+OUT = os.path.join(ROOT, "manual", "bipod_rail") if RAIL else os.path.join(ROOT, "manual")
 LIGHT, MID, DARKER, BLACK = (np.array([v, v, v]) for v in (0.86, 0.66, 0.50, 0.12))
 AG.BG = (255, 255, 255)
 FONT = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 34)
@@ -36,8 +39,8 @@ def save(img, name):
 def main():
     os.makedirs(OUT, exist_ok=True)
     base = trimesh.load(os.path.join(ROOT, "handguard_base.stl"))
-    rear = trimesh.load(os.path.join(ROOT, "snake_rear.3mf"), force="mesh")
-    front = trimesh.load(os.path.join(ROOT, "snake_front.3mf"), force="mesh")
+    rear = trimesh.load(os.path.join(ROOT, f"snake_rear{SUFFIX}.3mf"), force="mesh")
+    front = trimesh.load(os.path.join(ROOT, f"snake_front{SUFFIX}.3mf"), force="mesh")
     L = AG.LOCK
     view = np.array([0.0, -0.86, -0.51])
 
@@ -106,6 +109,19 @@ def main():
         label(d, sca, [b["x"], b["surface_y"], 0], {"rear": "rear piece screw", "front": "head piece screw"}[p], (0, -170))
     save(img, "fig_assembled.png")
     del asm
+
+    if RAIL:
+        # 6. from below with the accessory rail, and where a bipod can clamp
+        R = json.load(open(os.path.join(ROOT, "data", "bipod_rail.json")))
+        (x0, x1), w, zb = R["rail_x"], R["rail_half_width"], R["rail_bottom_z"]
+        rail = trimesh.creation.box(extents=[x1 - x0, 2 * w, -18.55 - zb])
+        rail.apply_translation([(x0 + x1) / 2, 0, (zb - 18.55) / 2])
+        scr = AG.Scene([-0.35, -0.45, 0.82], AG.UP, np.array([200.0, -50, -60]), np.array([470.0, 50, 50]), res=0.18)
+        img = scr.render([(base, LIGHT), (rear, MID), (front, DARKER), (rail, BLACK)])
+        d = ImageDraw.Draw(img)
+        for a, b in R["open_for_bipod_x"]:
+            label(d, scr, [(a + b) / 2, 0, zb], f"bipod here ({b - a:.0f} mm open)", (0, 150))
+        save(img, "fig_rail.png")
 
 
 if __name__ == "__main__":
