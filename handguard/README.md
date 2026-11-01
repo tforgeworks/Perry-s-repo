@@ -127,8 +127,11 @@ wall, so it never touches the barrel (free float is kept).
 
 The two pieces meet at X 227.8 mm, where the bodies are on the left and right sides. The cut is
 turned halfway between square-to-the-body (no feather-thin edges) and square-to-the-bore (so
-the pieces slide together). **Four rectangular tabs** (4.5 x 5 x 5 mm) on the head piece, two on each
-body, slide into four pockets (0.2 mm clearance) in the rear piece and line the two up.
+the pieces slide together). **Four tapered tabs** on the head piece, two on each body, slide into
+four matching pockets in the rear piece and line the two up. Each tab is 7.5 mm long, 4.5 x 5 mm at
+its chamfered tip and 5 x 6.5 mm at its root (a trapezoid: about 60% stronger at the root than a
+straight tab, roughly 145 N side load at the tip before it would crack). The pockets have 0.5 mm
+clearance all round and keep at least 1.2 mm of wall.
 
 1. **Once, before the first fit**: press an M5 heat-set insert into each of the four side holes,
    at the bottom of the wide hole, with a soldering iron (about 260 C for PA-CF, 240 C for PC).
@@ -150,9 +153,10 @@ piece's two bolts and pull it forward. The handguard stays on the rifle.
 
 Hardware for the snake: 4 x M5 heat-set inserts (M5 x 5.8 mm, 7.0 mm OD, 6.4 mm hole) and
 2 x M5 x 12 + 2 x M5 x 16 socket head cap screws (ISO 4762, class 12.9). Every bolt (clamp and snake) gets
-medium (blue) threadlocker. The full hardware list, torque values and step-by-step fitting are in
-the **manual: [manual/Snake_Handguard_Manual.docx](manual/Snake_Handguard_Manual.docx)**
-([PDF](manual/Snake_Handguard_Manual.pdf)). The muzzle device must be under 31 mm in diameter to pass through the
+medium (blue) threadlocker. The customer **user manual** for the snake kit (the two pieces, the
+inserts and the four screws, fitted to the customer's own handguard) is
+[manual/Snake_Handguard_Kit_User_Manual.docx](manual/Snake_Handguard_Kit_User_Manual.docx)
+([PDF](manual/Snake_Handguard_Kit_User_Manual.pdf)). The muzzle device must be under 31 mm in diameter to pass through the
 head; an A2 flash hider or a 7/8 in brake fits.
 
 ## Printing (0.4 mm nozzle, 0.2 mm layers)
@@ -239,7 +243,7 @@ MESHY_API_KEY=... python meshy_client.py submit snake_hg ../data/meshy_input_con
 python build_double_helix.py     # about 40 min, writes snake_rear/front.3mf and data/snake_lock.json
 python render_snake.py           # renders/snake_*.png
 python assembly_guide.py         # renders/assembly_guide.png
-python manual_figures.py && node build_manual.js   # manual/Snake_Handguard_Manual.docx
+python manual_figures.py && node build_manual.js   # manual/Snake_Handguard_Kit_User_Manual.docx
 python verify.py ../handguard_base.stl ../work/tris_al.npy --out ../verification/verification.json --fig ../verification/deviation_map.png
 ```
 
@@ -258,5 +262,5 @@ python verify.py ../handguard_base.stl ../work/tris_al.npy --out ../verification
 | `fragment_check.py` | finds pieces that hang on by a thread (bridges under 0.8 mm) and would print loose |
 | `render_util.py` | the renderer behind the preview pictures |
 | `render_snake.py` | the snake preview renders in `renders/` |
-| `manual_figures.py`, `build_manual.js` | the black-and-white assembly and hardware manual (`manual/`) |
+| `manual_figures.py`, `build_manual.js` | the black-and-white customer user manual for the snake kit (`manual/`) |
 | `assembly_guide.py` | the illustrated fitting and removal guide (`renders/assembly_guide.png`) |

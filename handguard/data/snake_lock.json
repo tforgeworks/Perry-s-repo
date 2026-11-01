@@ -1,4 +1,9 @@
 {
+ "tab_root_mm": [
+  5.0,
+  6.5
+ ],
+ "tab_clearance_mm": 0.5,
  "joint_x": 227.8,
  "joint_planes": [
   {
@@ -31,37 +36,37 @@
  "tabs": [
   {
    "strand": "left",
-   "y": 25.74,
-   "z": 5.09,
+   "y": 25.73,
+   "z": 6.09,
    "theta": 89.8,
-   "face_x": 230.89
+   "face_x": 231.5
   },
   {
    "strand": "left",
-   "y": 25.77,
-   "z": -2.91,
+   "y": 25.76,
+   "z": -1.91,
    "theta": 89.8,
-   "face_x": 225.93
+   "face_x": 226.55
   },
   {
    "strand": "right",
    "y": -26.76,
-   "z": -3.06,
+   "z": -2.06,
    "theta": -90.1,
-   "face_x": 225.9
+   "face_x": 226.53
   },
   {
    "strand": "right",
-   "y": -26.77,
-   "z": 4.94,
+   "y": -26.78,
+   "z": 5.94,
    "theta": -90.1,
-   "face_x": 230.94
+   "face_x": 231.57
   }
  ],
  "tab_size_mm": [
   4.5,
   5.0,
-  5.0
+  7.5
  ],
  "bolts": {
   "rear": [

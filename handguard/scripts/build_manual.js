@@ -1,4 +1,4 @@
-// Assembly and installation manual (manual/Snake_Handguard_Manual.docx): plain, black and white,
+// Customer user manual for the snake kit (manual/Snake_Handguard_Kit_User_Manual.docx): plain, black and white,
 // Times New Roman. Numbers that depend on the build (bolt lengths and positions, the joint, the
 // tabs) come from data/snake_lock.json.
 const fs = require("fs");
@@ -68,150 +68,140 @@ function figure(file, caption, widthIn = 6.0) {
 }
 
 // ---------- content
+const [ROOT_W, ROOT_H] = LOCK.tab_root_mm;
+const CLEAR = LOCK.tab_clearance_mm;
 const body = [
-  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [t("Snake Handguard", { bold: true, size: 40 })] }),
-  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [t("Assembly, Installation and Hardware Manual", { size: 30 })] }),
-  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 360 }, children: [t("Printed copy of the Trinity Force KMX-15 keymod handguard (15 in) with a two-piece snake sleeve, for a 16 in AR-15", { size: 22 })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [t("Titan Forgeworks", { size: 24 })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [t("Snake Handguard Kit", { bold: true, size: 40 })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [t("User Manual", { size: 30 })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 360 }, children: [t("Two-piece snake sleeve for the Trinity Force KMX-15 keymod free-float handguard (15 in) on an AR-15", { size: 22 })] }),
 
-  h1("1. Before you start"),
-  bullet([b("Unload the rifle. "), t("Remove the magazine, lock the bolt open, and check the chamber and magazine well by sight and by touch. Keep ammunition out of the room.")]),
-  bullet("Read the whole manual once before starting. Work on a clean bench with the rifle in a padded vise block or on a mat."),
-  bullet("All dimensions are in millimetres. Distances along the handguard are measured from its rear face (the end at the receiver)."),
-  bullet([t("The handguard is "), b("free floating"), t(": nothing in this kit may touch the barrel. The checks in section 8 confirm this.")]),
+  h1("1. Safety"),
+  bullet([b("Unload the rifle before you start. "), t("Remove the magazine, lock the bolt open, and check the chamber and magazine well by sight and by touch. Keep ammunition out of the room.")]),
+  bullet("Read this manual once before you start."),
+  bullet([t("The handguard is "), b("free floating"), t(": nothing in this kit touches the barrel. Do the free-float check in section 8 after every installation.")]),
   bullet("Threadlocker needs 24 hours to cure fully. Do not fire the rifle until it has cured."),
+  bullet("Do not fire the rifle with a snake piece loose, cracked, or missing a bolt."),
 
-  h1("2. Printed parts"),
-  table([1100, 3000, 5260], [
-    ["Part", "File", "Description"],
-    ["A", "handguard_base.stl", "The handguard, 387.2 mm long. Clamps onto the barrel nut like the original."],
-    ["B", "snake_rear.3mf", `Snake rear piece: the two tails and the rear half of both bodies. Has two bolt holes (left and right) and four tab pockets at its front end.`],
-    ["C", "snake_front.3mf", `Snake head piece: the front half of both bodies and the head. Has two bolt holes (left and right) and four alignment tabs at its rear end.`],
+  h1("2. What this kit fits"),
+  bullet([b("Handguard: "), t("Trinity Force KMX-15 keymod free-float handguard, 15 in (KM-34812-15), installed on the rifle as its maker instructs. The snake slides over the outside of the handguard; the handguard itself, its barrel nut and its own screws are not changed.")]),
+  bullet([b("Muzzle device: "), t("the snake's head slides over the barrel through its open mouth (31 mm passage). A muzzle device up to 31 mm in diameter (for example an A2 flash hider or a 7/8 in brake) can stay on; a larger one must come off while the snake is fitted or removed.")]),
+  bullet([b("Accessories: "), t("a front sight on the top rail right behind the head, and a bipod on a bottom keymod hole (section 9). Everything mounted on the handguard comes off while the snake is fitted or removed.")]),
+
+  h1("3. What is in the kit"),
+  table([3000, 800, 5560], [
+    ["Item", "Qty", "Description and replacement specification"],
+    ["A  Snake rear piece", "1", "The two tails and the rear half of the two bodies. Four pockets at its front end."],
+    ["B  Snake head piece", "1", "The head and the front half of the two bodies. Four tabs at its rear end."],
+    ["M5 heat-set threaded inserts", "4", "Already pressed in, two in each piece (one on each side). Replacement: M5 x 0.8 internal thread, brass, knurled, for plastics, 5.8 mm long, 7.0 mm outside diameter, for a 6.4 mm hole (for example ruthex RX-M5x5.8 or CNC Kitchen M5 standard)."],
+    [`${screwLen(rb).replace("x", " x ")} socket head cap screws`, "2", `For the rear piece A. Replacement: M5 x 0.8 thread, ${screwLen(rb).split("x")[1]} mm long, ISO 4762 (DIN 912), alloy steel class 12.9, black oxide; 8.5 mm head, 4 mm hex socket.`],
+    [`${screwLen(fb).replace("x", " x ")} socket head cap screws`, "2", `For the head piece B. Replacement: M5 x 0.8 thread, ${screwLen(fb).split("x")[1]} mm long, ISO 4762 (DIN 912), alloy steel class 12.9, black oxide; 8.5 mm head, 4 mm hex socket.`],
   ]),
   p(""),
-  p("Material for all three: PA-CF (carbon-fibre nylon), dried before printing, 0.4 mm hardened nozzle, 0.2 mm layers. Remove all support material, especially from the inside of the snake pieces, the bolt holes and the tab pockets."),
-  ...figure("fig_parts.png", "Figure 1. The three printed parts: A handguard, B snake rear piece, C snake head piece."),
+  p([b("Use only the screw lengths above, in the piece they belong to. "), t("A longer screw can reach the barrel; a shorter one does not reach the keymod hole and does not lock the piece.")]),
+  ...figure("fig_parts.png", "Figure 1. The kit's two pieces (A rear, B head) and the handguard they fit (not included)."),
 
-  h1("3. Hardware to buy"),
-  p("Buy exactly these items (or equivalents with the same specification). The quantity to buy includes spares."),
-  table([2200, 3800, 700, 1000, 1660], [
-    ["Item", "Specification", "Used", "Buy", "Where"],
-    ["Socket head cap screw M4 x 25", "M4 x 0.7 thread, 25 mm long, ISO 4762 (DIN 912), alloy steel class 12.9, black oxide. Head 7.0 mm diameter, 3 mm hex socket.", "2", "4", "Handguard clamp"],
-    ["Hex nut M4", "M4 x 0.7, ISO 4032 (DIN 934), steel class 8 or higher, 7.0 mm across flats, 3.2 mm thick. Plain nut: a nylon-insert lock nut (5 mm thick) does not fit the pocket.", "2", "4", "Handguard clamp"],
-    ["Centre screw", "Jack's original bottom centre screw from the original handguard (reuse it).", "1", "-", "Handguard clamp"],
-    ["Heat-set threaded insert M5", "M5 x 0.8 internal thread, brass, knurled, for plastics, 5.8 mm long, 7.0 mm outside diameter, for a 6.4 mm hole (for example ruthex RX-M5x5.8 or CNC Kitchen M5 standard).", "4", "8", "Snake pieces B and C"],
-    [`Socket head cap screw ${screwLen(rb).replace("x", " x ")}`, `M5 x 0.8 thread, ${screwLen(rb).split("x")[1]} mm long, ISO 4762 (DIN 912), alloy steel class 12.9, black oxide. Head 8.5 mm diameter, 4 mm hex socket.`, "2", "4", "Snake rear piece B"],
-    [`Socket head cap screw ${screwLen(fb).replace("x", " x ")}`, `M5 x 0.8 thread, ${screwLen(fb).split("x")[1]} mm long, ISO 4762 (DIN 912), alloy steel class 12.9, black oxide. Head 8.5 mm diameter, 4 mm hex socket.`, "2", "4", "Snake head piece C"],
-    ["Threadlocker, medium strength", "Removable (blue) anaerobic threadlocker, for example Loctite 243. Works on brass inserts and steel nuts; comes apart with hand tools.", "-", "1 bottle (5 to 10 ml)", "All bolts"],
-    ["Paint marker", "Any oil-based paint marker, for witness marks.", "-", "1", "Checks"],
-  ]),
-  p(""),
-  p([b("Do not substitute: "), t("longer M5 screws can reach the barrel; shorter ones do not reach the keymod holes and do not lock. Use the lengths above for each piece.")]),
-  h2("Tools"),
-  bullet("3 mm and 4 mm hex keys or hex bits."),
-  bullet("Torque screwdriver covering 1 to 3 N m (for example a 1 to 5 N m click-type driver with hex bits)."),
-  bullet("Soldering iron with an M5 heat-set insert tip (or a conical tip), adjustable temperature."),
-  bullet("Isopropyl alcohol and a cotton swab (to degrease threads before threadlocker)."),
-  bullet("A straight edge at least 300 mm long (to line up the rails)."),
-  bullet("A strip of printer paper (for the free-float check)."),
+  h1("4. What you need"),
+  bullet("4 mm hex key or hex bit."),
+  bullet("Torque screwdriver covering 1 to 3 N m (recommended), with a 4 mm hex bit."),
+  bullet("Medium-strength removable (blue) threadlocker, for example Loctite 243."),
+  bullet("Isopropyl alcohol and a cotton swab, to degrease the screws."),
+  bullet("A paint marker, for witness marks (recommended)."),
+  bullet("A strip of printer paper, for the free-float check."),
 
-  h1("4. How everything is locked"),
-  p("Every possible movement is stopped by a part, and every bolt is held by threadlocker and torque:"),
+  h1("5. How the snake stays put"),
+  p("Every movement is stopped by a part, and every screw is held by threadlocker and torque:"),
   table([3600, 5760], [
     ["Movement", "What stops it"],
-    ["Handguard turning or sliding on the barrel nut", "The clamp (two M4 bolts with steel nuts squeeze the bore onto the barrel nut), the centre screw, and the two rear lugs resting against the receiver."],
-    ["Snake turning around the handguard", "The inside of each snake piece is the handguard's outer shape (keymod flats and rail) plus 0.35 mm, so it cannot rotate."],
-    ["Snake lifting off sideways", "Each snake piece is a closed tube that goes all the way around the handguard."],
-    ["Rear piece B moving back", `Its two M5 bolts, whose tips sit at the rear end of the ${ord(rearHole)} side keymod hole (counted from the rear) on each side.`],
-    ["Rear piece B moving forward", "The head piece C in front of it."],
-    ["Head piece C moving forward (recoil pushes the snake forward)", `Its two M5 bolts, whose tips sit at the front end of the ${ord(frontHole)} side keymod hole (counted from the rear) on each side. Piece B pushes on C, so these two bolts hold both pieces under recoil.`],
-    ["Head piece C moving back", "The solid ring inside the head rests on the handguard's muzzle end."],
-    ["B and C shifting against each other", `Four rectangular tabs (${TAB_W} x ${TAB_H} mm, ${TAB_L} mm long) on C fit into four pockets in B with 0.2 mm clearance, two on the left body and two on the right body.`],
-    ["Bolts working loose", "Medium threadlocker on every bolt, the torque values in section 9, steel nuts and brass inserts (no plastic threads), and paint witness marks checked after firing."],
+    ["Turning around the handguard", "The inside of each piece is shaped to the handguard's flats and rail (with 0.35 mm clearance), so it cannot rotate."],
+    ["Coming off sideways", "Each piece is a closed tube that goes all the way around the handguard."],
+    ["Rear piece A moving back", `Its two screws, whose tips sit at the rear end of the ${ord(rearHole)} side keymod hole (counted from the rear of the handguard) on each side.`],
+    ["Rear piece A moving forward", "The head piece B in front of it."],
+    ["Head piece B moving forward (recoil pushes the snake forward)", `Its two screws, whose tips sit at the front end of the ${ord(frontHole)} side keymod hole (counted from the rear) on each side. Piece A pushes on B, so these two screws hold both pieces under recoil.`],
+    ["Head piece B moving back", "The solid ring inside the head rests on the front end of the handguard."],
+    ["A and B shifting against each other", `Four tapered tabs on B (${TAB_W} x ${TAB_H} mm at the tip, ${ROOT_W} x ${ROOT_H} mm at the root, ${TAB_L} mm long) fit four matching pockets in A with ${CLEAR} mm clearance all round: two on the left body, two on the right body.`],
+    ["Screws working loose", "Blue threadlocker on every screw, the torque in section 11, brass inserts (no plastic threads), and witness marks checked after firing."],
   ]),
 
-  h1("5. Preparing the snake pieces (once)"),
-  p("Each snake piece has two round bolt holes, one on its left side and one on its right side. Each hole is a wide counterbore (9.6 mm, for the screw head) with a narrower hole at its bottom (6.4 mm, for the insert)."),
+  h1("6. Before you install"),
   ...steps([
-    ["Clean the holes of any support material. Check that an insert drops into the 6.4 mm hole by hand only at its tip (it must be pressed in with heat)."],
-    ["Set the soldering iron to 260 C for PA-CF (240 C for PC, 230 C for ASA). Put the insert on the 6.4 mm hole, small end down, straight and square to the hole."],
-    ["Press it in slowly with the iron, keeping it straight, until its top is flush with the floor of the wide counterbore. Do not push it below the floor. Lift the iron straight off."],
-    ["While still soft, press the top of the insert flat with a cool flat tool for 10 seconds. Let it cool fully (5 minutes)."],
-    ["Repeat for all four holes (two on B, two on C)."],
-    [`Check each insert: screw the matching bolt (${screwLen(rb)} in B, ${screwLen(fb)} in C) in by hand. It must turn freely and the head must sit down on the insert. Remove the bolts again.`],
+    ["Unload the rifle (section 1)."],
+    ["Check that the handguard is installed and tight as its maker instructs. Nothing on the handguard itself changes for the snake."],
+    ["Remove everything mounted on the handguard: front sight, bipod or bipod mount, lights, rail covers and keymod accessories."],
+    ["Remove the muzzle device if it is wider than 31 mm."],
+    ["Check the inside of both snake pieces, the screw holes and the four pockets for dust or loose bits, and blow them clean."],
   ]),
-  ...figure("fig_insert.png", "Figure 2. Pressing a heat-set insert into the bottom of a bolt hole (rear piece, left side)."),
-
-  h1("6. Installing the handguard"),
-  ...steps([
-    ["Remove the original handguard: take out its two clamp bolts and its bottom centre screw (keep the centre screw), and slide it forward off the barrel."],
-    ["Remove the muzzle device if it is wider than 31 mm (the head of the snake passes over it later). Remove any front sight and bipod mount."],
-    ["Slide the printed handguard A over the barrel onto the barrel nut, rail up, until the two small lugs at its rear end touch the front of the receiver."],
-    ["Lay the straight edge along the top of the receiver rail and the handguard rail. Turn the handguard until the two rails are in line."],
-    ["Drop the two M4 hex nuts into the hex pockets on the left side of the clamp block."],
-    ["Degrease the M4 x 25 bolts. Put one drop of threadlocker on the threads, about 5 mm from the tip. Insert them from the right side and thread them into the nuts."],
-    ["Tighten them a little at a time, alternating between the two, to 2.0 N m. Check the rails are still in line."],
-    ["Put one drop of threadlocker on the original centre screw and install it from below, snug, as on the original handguard."],
-    ["Try to turn and pull the handguard by hand: it must not move at all."],
-  ]),
-  ...figure("fig_clamp.png", "Figure 3. The clamp from below: two M4 x 25 bolts from the right, nuts on the left, centre screw from below."),
 
   h1("7. Installing the snake"),
-  h2("Rear piece B"),
+  h2("Rear piece A"),
   ...steps([
-    ["Slide piece B over the muzzle, tails first, and along the handguard. It slides like a sleeve: do not force it. If it binds, look for support material inside."],
-    [`Slide it back until a side keymod hole of the handguard shows through the bolt hole on each side (the ${ord(rearHole)} keymod hole counted from the rear).`],
-    [`Degrease the two ${screwLen(rb)} bolts, put one drop of threadlocker on the threads, and screw one in on each side by hand until the tips enter the keymod holes.`],
-    ["Push piece B back (toward the receiver) and hold it there, so the bolt tips rest against the rear ends of their keymod holes."],
-    ["Tighten both bolts to 1.5 N m. Do not exceed 2.0 N m (the insert can be pulled out of the plastic)."],
+    ["Slide piece A over the muzzle, tails first, and along the handguard. It slides like a sleeve; do not force it."],
+    [`Slide it back until a side keymod hole of the handguard shows through the round screw hole on each side (the ${ord(rearHole)} keymod hole counted from the rear).`],
+    [`Degrease the two ${screwLen(rb)} screws, put one drop of threadlocker on the threads, and screw one in on each side by hand until the tips enter the keymod holes.`],
+    ["Push piece A back (toward the receiver) and hold it there, so the screw tips rest against the rear ends of their keymod holes."],
+    ["Tighten both screws to 1.5 N m. Do not exceed 2.0 N m: more can pull the insert out of the plastic."],
   ]),
-  h2("Head piece C"),
+  h2("Head piece B"),
   ...steps([
-    ["Slide piece C over the muzzle (the barrel and muzzle device pass through the open mouth) and back along the handguard."],
-    ["As it reaches piece B, line up its four tabs with the four pockets in B (two on the left body, two on the right body) and push it home. The tabs slide in with light hand pressure."],
-    ["Push piece C back until the inside of the head rests on the muzzle end of the handguard, and the faces of B and C meet with an even, hairline gap."],
-    [`Degrease the two ${screwLen(fb)} bolts, put one drop of threadlocker on the threads, and screw one in on each side (the ${ord(frontHole)} keymod hole counted from the rear).`],
-    ["Push piece C back and hold it while tightening both bolts to 1.5 N m (maximum 2.0 N m)."],
+    ["Slide piece B over the muzzle (the barrel and muzzle device pass through the open mouth) and back along the handguard."],
+    ["As it reaches piece A, line up its four tabs with the four pockets in A (two on the left body, two on the right body) and push it home. The tapered tabs find the pockets and slide in with light hand pressure."],
+    ["Push piece B back until the inside of the head rests on the front end of the handguard and the faces of A and B meet with an even, hairline gap."],
+    [`Degrease the two ${screwLen(fb)} screws, put one drop of threadlocker on the threads, and screw one in on each side (the ${ord(frontHole)} keymod hole counted from the rear).`],
+    ["Push piece B back and hold it while tightening both screws to 1.5 N m (maximum 2.0 N m)."],
   ]),
-  ...figure("fig_joint.png", "Figure 4. The joint between B (left) and C (right), pulled apart: four tabs on C (black) and their pockets in B."),
-  ...figure("fig_bolt_section.png", "Figure 5. Cut across the head piece's bolts, seen from the muzzle: each bolt goes through an insert and its tip ends in a keymod hole in the handguard wall, clear of the barrel."),
+  ...figure("fig_joint.png", "Figure 2. The joint between A (left) and B (right), pulled apart: the four tapered tabs on B (black) and their pockets in A."),
+  ...figure("fig_bolt_section.png", "Figure 3. Cut across the head piece's screws, seen from the muzzle: each screw goes through a heat-set insert and its tip ends in a keymod hole in the handguard wall, clear of the barrel."),
 
   h1("8. Final checks"),
   ...steps([
     ["Grip the snake at the head and at the tails and try to twist it, push it and pull it. Nothing may move or click."],
-    ["Free float: slide the paper strip all the way around the barrel inside the head and at the muzzle end of the handguard. It must pass freely everywhere. Nothing may touch the barrel."],
-    ["Make a paint witness mark across each bolt head and the snake next to it (four snake bolts, two clamp bolts)."],
+    ["Free float: slide the paper strip all the way around the barrel inside the head and at the front end of the handguard. It must pass freely everywhere. Nothing may touch the barrel."],
+    ["Make a paint witness mark across each of the four screw heads and the snake next to it."],
     ["Let the threadlocker cure for 24 hours before firing."],
-    ["After the first 50 rounds, and after any hard knock, check the witness marks. If a mark has moved, remove that bolt, clean the threads, re-apply threadlocker and tighten again."],
+    ["After the first 50 rounds, and after any hard knock, check the witness marks. If a mark has moved, remove that screw, clean the threads, re-apply threadlocker and tighten it again."],
   ]),
-  ...figure("fig_assembled.png", "Figure 6. Assembled, rifle's left side, with the bolt positions (one bolt on each side of each piece)."),
+  ...figure("fig_assembled.png", "Figure 4. Installed, rifle's left side, with the screw positions (one screw on each side of each piece)."),
 
-  h1("9. Torque values"),
-  table([4200, 2000, 3160], [
-    ["Fastener", "Torque", "Notes"],
-    ["M4 x 25 clamp bolts (2)", "2.0 N m", "Alternate between the two; threadlocker"],
-    ["Centre screw (original)", "Snug", "As on the original handguard; threadlocker"],
-    [`${screwLen(rb)} bolts, rear piece B (2)`, "1.5 N m (max 2.0)", "Piece pushed back while tightening; threadlocker"],
-    [`${screwLen(fb)} bolts, head piece C (2)`, "1.5 N m (max 2.0)", "Piece pushed back while tightening; threadlocker"],
-  ]),
+  h1("9. Accessories"),
+  bullet([b("Front sight: "), t("mounts on the top rail right behind the head, on the 3rd to 6th rail slots counted from the muzzle end. The snake leaves this part of the rail clear.")]),
+  bullet([b("Bipod: "), t("mounts on the 4th bottom keymod hole counted from the muzzle end, with a standard keymod bipod adapter. The snake leaves this hole clear.")]),
+  bullet("The rest of the rail and keymod holes are partly covered by the snake. Install accessories after the snake, with their own hardware and instructions, and remove them before taking the snake off."),
 
-  h1("10. Accessories"),
-  bullet([b("Front sight: "), t("mounts on the top rail right behind the head, on the 3rd to 6th rail slots counted from the muzzle end (312 to 357 mm from the rear face). The snake does not cover this part of the rail.")]),
-  bullet([b("Bipod: "), t("mounts on the 4th bottom keymod hole counted from the muzzle end (278.6 to 297.0 mm from the rear face), with a standard keymod bipod adapter. The snake leaves the bottom clear from 272.5 to 303.5 mm.")]),
-  bullet("Both must be removed before the snake pieces slide on or off. Install them last, with their own hardware and instructions."),
-
-  h1("11. Removal"),
+  h1("10. Removal"),
   ...steps([
     ["Unload the rifle (section 1). Remove the front sight, the bipod mount and, if needed, the muzzle device."],
-    ["Remove the two bolts of head piece C (if tight, a short sharp turn of the hex key breaks the threadlocker). Pull C forward off the muzzle."],
-    ["Remove the two bolts of rear piece B and pull B forward off the muzzle."],
-    ["The handguard stays on the rifle. To remove it, take out the centre screw and the two clamp bolts and slide it forward."],
-    ["Before re-installing, clean old threadlocker off the bolts and inserts with a brush and isopropyl alcohol and use fresh threadlocker."],
+    ["Remove the two screws of head piece B (if tight, a short, sharp turn of the hex key breaks the threadlocker). Pull B forward off the muzzle."],
+    ["Remove the two screws of rear piece A and pull A forward off the muzzle."],
+    ["Before re-installing, clean old threadlocker off the screws and the inserts with a brush and isopropyl alcohol, and use fresh threadlocker."],
   ]),
+
+  h1("11. Torque values"),
+  table([4200, 2200, 2960], [
+    ["Screw", "Torque", "Notes"],
+    [`${screwLen(rb)}, rear piece A (2)`, "1.5 N m (max 2.0)", "Piece pushed back while tightening; threadlocker"],
+    [`${screwLen(fb)}, head piece B (2)`, "1.5 N m (max 2.0)", "Piece pushed back while tightening; threadlocker"],
+  ]),
+
+  h1("12. Care"),
+  bullet("The snake is printed in carbon-fibre nylon (PA-CF). It takes the handguard's normal heat, but let the rifle cool between long strings of rapid fire."),
+  bullet("Clean it with a soft brush and a damp cloth. Gun oil and normal bore cleaners do no harm; keep acetone and paint strippers off it."),
+  bullet("Check the witness marks and look the snake over for cracks before each range trip. Do not use a cracked piece."),
+
+  h1("13. Replacing a heat-set insert"),
+  p("The inserts come installed. If one ever comes loose or is damaged, replace it as follows (spare: section 3):"),
+  ...steps([
+    ["Remove the snake piece from the rifle. Heat the old insert with a soldering iron and pull it out with pliers while it is hot; let the hole cool."],
+    ["Set the soldering iron to 260 C. Put the new insert on the 6.4 mm hole at the bottom of the wide screw hole, small end down, straight and square."],
+    ["Press it in slowly with the iron, keeping it straight, until its top is flush with the floor of the wide hole. Do not push it below the floor. Lift the iron straight off."],
+    ["While still soft, press the top of the insert flat with a cool flat tool for 10 seconds, then let it cool for 5 minutes."],
+    ["Check it: the screw for that piece must turn in freely by hand and its head must sit down on the insert."],
+  ]),
+  ...figure("fig_insert.png", "Figure 5. A heat-set insert at the bottom of a screw hole (rear piece, left side)."),
 ];
 
 const doc = new Document({
   creator: "Titan Forgeworks",
-  title: "Snake Handguard: Assembly, Installation and Hardware Manual",
+  title: "Snake Handguard Kit: User Manual",
   styles: {
     default: { document: { run: { font: FONT, size: 22, color: "000000" } } },
     paragraphStyles: [
@@ -232,13 +222,13 @@ const doc = new Document({
   sections: [{
     properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
     footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER,
-      children: [t("Snake Handguard Manual, page ", { size: 18 }), new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 18, color: "000000" })] })] }) },
+      children: [t("Snake Handguard Kit, User Manual, page ", { size: 18 }), new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 18, color: "000000" })] })] }) },
     children: body,
   }],
 });
 
 Packer.toBuffer(doc).then((buf) => {
-  const f = path.join(OUT, "Snake_Handguard_Manual.docx");
+  const f = path.join(OUT, "Snake_Handguard_Kit_User_Manual.docx");
   fs.writeFileSync(f, buf);
   console.log(f);
 });

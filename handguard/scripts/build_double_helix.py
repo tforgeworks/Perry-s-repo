@@ -366,9 +366,11 @@ def build(V, F, front_polys, rear_polys, x_range=(HG.X_FACE, 474.0), slab=24.0):
 
 # ---- joint, alignment tabs and side bolts ----
 JOINT_GAP = 0.3            # gap between the two pieces' faces at the joint
-TAB_W, TAB_H, TAB_L = 4.5, 5.0, 5.0    # alignment tab: across, radial, sticking out of the front piece
-TAB_CLEAR = 0.2            # per side, tab to its pocket
-TAB_WALL = 2.0             # material kept around every pocket
+TAB_W, TAB_H, TAB_L = 4.5, 5.0, 7.5    # alignment tab: across, radial, sticking out of the front piece
+TAB_ROOT = (5.0, 6.5)      # the tab widens to this at its root (across, radial): a trapezoid, stronger at the root
+TAB_CLEAR = 0.5            # per side, tab to its pocket (all round the cross-section)
+TAB_WALL = 1.4             # material kept around every pocket (at least)
+TAB_POS = {"left": [(-6.0, 0.0), (2.0, 0.0)], "right": [(-2.0, 0.0), (6.0, 0.0)]}   # (across, out) mm from each body's centre
 BOLT_HEAD_D = 9.6          # counterbore for an M5 socket head cap screw (head 8.5 mm)
 BOLT_HEAD_H = 5.0
 BOLT_CLEAR_D = 5.5
@@ -455,16 +457,17 @@ def tab_geometry(pl, d_rad, s_tan):
 
 
 def place_tabs(rear, front, planes):
-    """Two tabs on each joint face (strand A over the top, strand B under the bottom), where
-    both pieces have TAB_WALL of material all round the tab and its pocket."""
+    """Two tabs on each joint face (the left and the right body), at TAB_POS, and how much of
+    TAB_WALL of material around each tab and pocket is missing (should be about none)."""
     picks = []
     for pl in planes:
         lo = pl["p"] - 40; hi = pl["p"] + 40
         crop = Manifold.cube(tuple(hi - lo)).translate(tuple(lo))
         rc, fc = rear ^ crop, front ^ crop
         miss = {}
-        for s_tan in np.arange(-12.0, 12.5, 1.0):
-            for d_rad in (-2.0, 0.0, 2.0, 4.0):
+        fixed = TAB_POS.get(pl["strand"])
+        for s_tan in (sorted({q[0] for q in fixed}) if fixed else np.arange(-12.0, 12.5, 1.0)):
+            for d_rad in ((0.0,) if fixed else (-2.0, 0.0, 2.0, 4.0)):
                 c, th, xf = tab_geometry(pl, d_rad, s_tan)
                 pocket = tab_bar(c, th, xf - TAB_L - 0.6 - TAB_WALL, xf - 0.5, TAB_W, TAB_H, TAB_CLEAR + TAB_WALL)
                 pocket = pocket.trim_by_plane(tuple(-pl["n"]), float(-(pl["n"] @ pl["p"])) + JOINT_GAP / 2 + 0.3)
@@ -480,7 +483,7 @@ def place_tabs(rear, front, planes):
                 if best is None or score < best[0]:
                     best = (score, (s1, d1), (s2, d2))
         print(f"  tabs on the {pl['strand']} body: (across, out) {best[1]} and {best[2]}, material missing {best[0]:.2f} mm3")
-        if best[0] > 12.0:     # a few mm3 is scale texture
+        if best[0] > 20.0:     # a few mm3 is scale texture
             raise SystemExit(f"no room for the tabs on the {pl['strand']} body")
         for s_tan, d_rad in best[1:]:
             c, th, xf = tab_geometry(pl, d_rad, s_tan)
@@ -494,12 +497,19 @@ def add_tabs(rear, front, tabs):
     for t in tabs:
         c = (t["y"], t["z"]); th = t["theta"]; xf = t["face_x"]
         x_tip = xf - TAB_L
-        # the leading 1.2 mm tapers by 0.6 mm a side, so the tab finds its pocket
-        bar = tab_bar(c, th, x_tip + 1.2, xf + 6.0, TAB_W, TAB_H)
-        tip = Manifold.batch_hull([tab_bar(c, th, x_tip, x_tip + 0.01, TAB_W - 1.2, TAB_H - 1.2),
-                                   tab_bar(c, th, x_tip + 1.19, x_tip + 1.2, TAB_W, TAB_H)])
-        front = front + bar + tip
-        rear = rear - tab_bar(c, th, x_tip - 0.6, xf + 2.0, TAB_W, TAB_H, TAB_CLEAR)
+        slab = lambda x, w, h, g=0.0: tab_bar(c, th, x, x + 0.01, w, h, g)
+        # trapezoid: TAB_W x TAB_H at the tip, TAB_ROOT at the joint face, and the root carried on
+        # into the head piece; the leading 1.2 mm tapers by 0.6 mm a side, so the tab finds its pocket
+        body = Manifold.batch_hull([slab(x_tip + 1.2, TAB_W, TAB_H), slab(xf - 0.01, *TAB_ROOT)])
+        root = tab_bar(c, th, xf - 0.01, xf + 6.0, *TAB_ROOT)
+        tip = Manifold.batch_hull([slab(x_tip, TAB_W - 1.2, TAB_H - 1.2), slab(x_tip + 1.19, TAB_W, TAB_H)])
+        front = front + body + root + tip
+        # the pocket: the same trapezoid grown by TAB_CLEAR all round, 0.6 mm deeper than the tip
+        k = (TAB_L + 0.6) / (TAB_L - 1.2)       # extend the taper to the pocket floor
+        floor_w = TAB_ROOT[0] - (TAB_ROOT[0] - TAB_W) * k
+        floor_h = TAB_ROOT[1] - (TAB_ROOT[1] - TAB_H) * k
+        pocket = Manifold.batch_hull([slab(x_tip - 0.6, floor_w, floor_h, TAB_CLEAR), slab(xf - 0.01, *TAB_ROOT, TAB_CLEAR)])
+        rear = rear - pocket - tab_bar(c, th, xf - 0.01, xf + 2.0, *TAB_ROOT, TAB_CLEAR)
     return rear, front
 
 
@@ -615,7 +625,7 @@ def main():
     print("bolts:", json.dumps(bolts, indent=1))
     for name in pieces:
         pieces[name] = add_bolt_holes(pieces[name], bolts[name])
-    json.dump({"joint_x": xj, "joint_planes": [{"strand": pl["strand"], "point": pl["p"].round(2).tolist(),
+    json.dump({"tab_root_mm": list(TAB_ROOT), "tab_clearance_mm": TAB_CLEAR, "joint_x": xj, "joint_planes": [{"strand": pl["strand"], "point": pl["p"].round(2).tolist(),
                                                   "normal": pl["n"].round(4).tolist()} for pl in planes], "tabs": tabs, "tab_size_mm": [TAB_W, TAB_H, TAB_L], "bolts": bolts},
               open(os.path.join(HERE, "..", "data", "snake_lock.json"), "w"), indent=1)
     for name, piece in pieces.items():

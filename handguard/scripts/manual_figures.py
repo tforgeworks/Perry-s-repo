@@ -7,10 +7,9 @@ import os
 
 import numpy as np
 import trimesh
-from PIL import Image, ImageDraw, ImageFont
+from PIL import ImageDraw, ImageFont
 
 import assembly_guide as AG
-import build_handguard as HG
 
 ROOT = AG.ROOT
 OUT = os.path.join(ROOT, "manual")
@@ -46,9 +45,9 @@ def main():
     sc = AG.Scene(view, AG.UP, np.array([-10.0, -60, -130]), np.array([520.0, 60, 70]), res=0.45)
     img = sc.render([(base, LIGHT), (AG.moved_z(rear, -100), MID), (AG.moved_z(AG.moved(front, 50), -100), DARKER)])
     d = ImageDraw.Draw(img)
-    label(d, sc, [200, 0, 40], "A  handguard", (0, -40))
-    label(d, sc, [120, -30, -135], "B  snake rear piece", (0, 60))
-    label(d, sc, [390, -30, -135], "C  snake head piece", (0, 60))
+    label(d, sc, [200, 0, 40], "your handguard (not included)", (0, -40))
+    label(d, sc, [120, -30, -135], "A  snake rear piece", (0, 60))
+    label(d, sc, [390, -30, -135], "B  snake head piece", (0, 60))
     save(img, "fig_parts.png")
 
     # 2. heat-set insert (rear piece, left bolt)
@@ -61,20 +60,14 @@ def main():
     label(d, sci, [BX, BS, -5.5], "insert hole (one on each side of each piece)", (0, 260))
     save(img, "fig_insert.png")
 
-    # 3. clamp from below
-    scc = AG.Scene([0.15, 0.55, 0.82], AG.UP, np.array([-5.0, -32, -36]), np.array([75.0, 32, 30]), res=0.07)
-    img = scc.render([(base.slice_plane([80, 0, 0], [-1, 0, 0]), LIGHT), (AG.clamp_screws(), BLACK)], density=3.0)
-    d = ImageDraw.Draw(img)
-    label(d, scc, [HG.SCREW_X[1], -HG.BOSS_HALF, HG.SCREW_Z], "2 x M4 x 25 bolts (nuts on the other side)", (260, 120))
-    label(d, scc, [HG.CENTER_SCREW_X, 0, HG.KEEL_BOT], "centre screw", (-200, 80))
-    save(img, "fig_clamp.png")
-
     # 4. the joint, pulled apart, tabs dark
-    XJ = L["joint_x"]; W, H, TL = L["tab_size_mm"]
+    XJ = L["joint_x"]; W, H, TL = L["tab_size_mm"]; RW, RH = L["tab_root_mm"]
     tabs = []
     for t in L["tabs"]:
-        b = trimesh.creation.box(extents=[TL + 6.0, W, H])
-        b.apply_translation([t["face_x"] - TL / 2 + 3.0, 0, 0])
+        pts = []
+        for x, w, h in ((t["face_x"] - TL, W, H), (t["face_x"], RW, RH), (t["face_x"] + 3.0, RW, RH)):
+            pts += [[x, sy * w / 2, sz * h / 2] for sy in (-1, 1) for sz in (-1, 1)]
+        b = trimesh.convex.convex_hull(np.array(pts))
         b.apply_transform(trimesh.transformations.rotation_matrix(np.radians(t["theta"]), [-1, 0, 0]))
         b.apply_translation([0, t["y"], t["z"]])
         tabs.append(b)
@@ -110,7 +103,7 @@ def main():
     d = ImageDraw.Draw(img)
     for p in ("rear", "front"):
         b = [q for q in L["bolts"][p] if q["side"] == "left"][0]
-        label(d, sca, [b["x"], b["surface_y"], 0], f"{p} bolt", (0, -170))
+        label(d, sca, [b["x"], b["surface_y"], 0], {"rear": "rear piece screw", "front": "head piece screw"}[p], (0, -170))
     save(img, "fig_assembled.png")
     del asm
 
