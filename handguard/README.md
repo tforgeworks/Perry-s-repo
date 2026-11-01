@@ -134,7 +134,7 @@ straight tab, roughly 145 N side load at the tip before it would crack). The poc
 clearance all round and keep at least 1.2 mm of wall.
 
 1. **Once, before the first fit**: press an M5 heat-set insert into each of the four side holes,
-   at the bottom of the wide hole, with a soldering iron (about 260 C for PA-CF, 240 C for PC).
+   at the bottom of the wide hole, with a soldering iron (about 280 C for the PC snake pieces).
 2. Slide the **handguard** over the barrel onto the barrel nut, until the two tabs at its rear
    end sit against the receiver. Line its rail up with the receiver's rail.
 3. Drop two **M4 hex nuts** into the hex pockets on the left side of the clamp. Put two
@@ -164,10 +164,12 @@ head; an A2 flash hider or a 7/8 in brake fits.
 - **Size**: the handguard is 387.2 mm long, so it needs a big bed. It fits diagonally
   (about 40 deg) on a 350 x 320 mm bed such as the H2D, but not on a 256 mm bed. The two
   snake pieces are 218.6 mm and 237.1 mm long and fit a 256 mm bed.
-- **Material**: **PA-CF (carbon-fibre nylon)** for all three parts. It is the strongest and stiffest
-  common option and stays firm near a hot barrel. PC or PC-CF are next best. ASA works for the
-  snake only. PLA and PETG will soften and creep: do not use them. Dry the PA-CF before printing,
-  and use a hardened nozzle.
+- **Material**: the snake pieces are printed in **PC (polycarbonate)**. For a printed handguard,
+  **PA-CF (carbon-fibre nylon)** is the strongest and stiffest common option and stays firm near a
+  hot barrel (dry it before printing, hardened nozzle); PC or PC-CF are next best. PLA and PETG
+  will soften and creep: do not use them. PC can stress-crack from anaerobic threadlockers and many
+  gun solvents, so the user manual calls for a plastic-safe threadlocker (or blue on the screw tip
+  only) and keeps solvents off the snake.
 - **Orientation**: print the handguard **rail-down** (rail top flat on the bed, clamp block on top).
   The layers then run along the length and across the clamp bolts, its strongest direction for
   both bending and clamping. Use tree supports inside the bore and under the sides of the tube.
