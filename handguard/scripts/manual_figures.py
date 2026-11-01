@@ -13,7 +13,7 @@ from PIL import ImageDraw, ImageFont
 import assembly_guide as AG
 
 ROOT = AG.ROOT
-RAIL = os.environ.get("SNAKE_VARIANT") == "bipod_rail"   # the version with a channel for the bottom accessory rail
+RAIL = os.environ.get("SNAKE_VARIANT") == "bipod_rail"   # the version cut away under the front for the bottom accessory rail
 SUFFIX = "_bipod_rail" if RAIL else ""
 OUT = os.path.join(ROOT, "manual", "bipod_rail") if RAIL else os.path.join(ROOT, "manual")
 LIGHT, MID, DARKER, BLACK = (np.array([v, v, v]) for v in (0.86, 0.66, 0.50, 0.12))
@@ -39,7 +39,7 @@ def save(img, name):
 def main():
     os.makedirs(OUT, exist_ok=True)
     base = trimesh.load(os.path.join(ROOT, "handguard_base.stl"))
-    rear = trimesh.load(os.path.join(ROOT, f"snake_rear{SUFFIX}.3mf"), force="mesh")
+    rear = trimesh.load(os.path.join(ROOT, "snake_rear.3mf"), force="mesh")
     front = trimesh.load(os.path.join(ROOT, f"snake_front{SUFFIX}.3mf"), force="mesh")
     L = AG.LOCK
     view = np.array([0.0, -0.86, -0.51])
@@ -111,7 +111,7 @@ def main():
     del asm
 
     if RAIL:
-        # 6. from below with the accessory rail, and where a bipod can clamp
+        # 6. from below: the head piece cut away over the whole accessory rail
         R = json.load(open(os.path.join(ROOT, "data", "bipod_rail.json")))
         (x0, x1), w, zb = R["rail_x"], R["rail_half_width"], R["rail_bottom_z"]
         rail = trimesh.creation.box(extents=[x1 - x0, 2 * w, -18.55 - zb])
@@ -119,8 +119,7 @@ def main():
         scr = AG.Scene([-0.35, -0.45, 0.82], AG.UP, np.array([200.0, -50, -60]), np.array([470.0, 50, 50]), res=0.18)
         img = scr.render([(base, LIGHT), (rear, MID), (front, DARKER), (rail, BLACK)])
         d = ImageDraw.Draw(img)
-        for a, b in R["open_for_bipod_x"]:
-            label(d, scr, [(a + b) / 2, 0, zb], f"bipod here ({b - a:.0f} mm open)", (0, 150))
+        label(d, scr, [(x0 + x1) / 2, 0, zb], "bottom accessory rail: fully open", (0, 150))
         save(img, "fig_rail.png")
 
 

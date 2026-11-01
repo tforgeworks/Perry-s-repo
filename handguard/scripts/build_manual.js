@@ -9,13 +9,13 @@ const {
 } = require("docx");
 
 const ROOT = process.env.GUIDE_ROOT || path.join(__dirname, "..");
-// SNAKE_VARIANT=bipod_rail: the version with a channel under both pieces for the bottom accessory rail
+// SNAKE_VARIANT=bipod_rail: the version whose head piece is cut away under the front for the bottom accessory rail
 const RAIL = process.env.SNAKE_VARIANT === "bipod_rail";
 const OUT = RAIL ? path.join(ROOT, "manual", "bipod_rail") : path.join(ROOT, "manual");
 const RL = RAIL ? JSON.parse(fs.readFileSync(path.join(ROOT, "data", "bipod_rail.json"))) : null;
 const X_END = 387.4;                                   // front end of the handguard, from its rear face
 const fromFront = (x) => Math.round(X_END - x);
-const railOpen = RAIL ? RL.open_for_bipod_x.map(([a, b2]) => ({ near: fromFront(b2), far: fromFront(a), len: Math.round(b2 - a) })) : [];
+const cutNear = RAIL ? fromFront(RL.cut_x[1]) : 0, cutFar = RAIL ? fromFront(RL.cut_x[0]) : 0;
 const LOCK = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "snake_lock.json")));
 const FONT = "Times New Roman";
 
@@ -93,8 +93,8 @@ const body = [
   bullet([b("Handguard: "), t("Trinity Force KMX-15 keymod free-float handguard, 15 in (KM-34812-15), installed on the rifle as its maker instructs. The snake slides over the outside of the handguard; the handguard itself, its barrel nut and its own screws are not changed.")]),
   bullet([b("Muzzle device: "), t("the snake's head slides over the barrel through its open mouth (31 mm passage). A muzzle device up to 31 mm in diameter (for example an A2 flash hider or a 7/8 in brake) can stay on; a larger one must come off while the snake is fitted or removed.")]),
   ...(RAIL ? [
-    bullet([b("Bottom accessory rail (required for this version): "), t(`a Picatinny accessory rail, 21 mm wide and about ${Math.round(RL.rail_x[1] - RL.rail_x[0])} mm long, bolted to the bottom keymod holes at the front of the handguard so that its front end is about ${fromFront(RL.rail_x[1])} mm from the front end of the handguard. Both snake pieces have a channel along their underside and slide on over this rail; it stays on the rifle.`)]),
-    bullet([b("Accessories: "), t("a front sight on the top rail right behind the head, and a bipod clamped onto the bottom accessory rail (section 9). Everything else mounted on the handguard comes off while the snake is fitted or removed.")]),
+    bullet([b("Bottom accessory rail: "), t(`in this version the head piece is cut away underneath, from ${cutNear} mm to ${cutFar} mm back from the front end of the handguard. Nothing of the snake is below the handguard there, so a Picatinny accessory rail (up to 21 mm wide and ${cutFar - cutNear - 3} mm long) on the bottom keymod holes in that stretch, and a bipod on that rail, go on and come off with the snake in place.`)]),
+    bullet([b("Accessories: "), t("a front sight on the top rail right behind the head, and the bottom accessory rail and bipod (section 9). Everything else mounted on the handguard comes off while the snake is fitted or removed.")]),
   ] : [
     bullet([b("Accessories: "), t("a front sight on the top rail right behind the head, and a bipod on a bottom keymod hole (section 9). Everything mounted on the handguard comes off while the snake is fitted or removed.")]),
   ]),
@@ -102,8 +102,8 @@ const body = [
   h1("3. What is in the kit"),
   table([3000, 800, 5560], [
     ["Item", "Qty", "Description and replacement specification"],
-    ["A  Snake rear piece", "1", "The two tails and the rear half of the two bodies. Four pockets at its front end." + (RAIL ? " A channel along its underside fits over the bottom accessory rail." : "")],
-    ["B  Snake head piece", "1", "The head and the front half of the two bodies. Four tabs at its rear end." + (RAIL ? " A channel along its underside fits over the bottom accessory rail." : "")],
+    ["A  Snake rear piece", "1", "The two tails and the rear half of the two bodies. Four pockets at its front end."],
+    ["B  Snake head piece", "1", "The head and the front half of the two bodies. Four tabs at its rear end." + (RAIL ? " Cut away underneath at the front, for the bottom accessory rail." : "")],
     ["M5 heat-set threaded inserts", "4", "Already pressed in, two in each piece (one on each side). Replacement: M5 x 0.8 internal thread, brass, knurled, for plastics, 5.8 mm long, 7.0 mm outside diameter, for a 6.4 mm hole (for example ruthex RX-M5x5.8 or CNC Kitchen M5 standard)."],
     [`${screwLen(rb).replace("x", " x ")} socket head cap screws`, "2", `For the rear piece A. Replacement: M5 x 0.8 thread, ${screwLen(rb).split("x")[1]} mm long, ISO 4762 (DIN 912), alloy steel class 12.9, black oxide; 8.5 mm head, 4 mm hex socket.`],
     [`${screwLen(fb).replace("x", " x ")} socket head cap screws`, "2", `For the head piece B. Replacement: M5 x 0.8 thread, ${screwLen(fb).split("x")[1]} mm long, ISO 4762 (DIN 912), alloy steel class 12.9, black oxide; 8.5 mm head, 4 mm hex socket.`],
@@ -139,8 +139,7 @@ const body = [
     ["Unload the rifle (section 1)."],
     ["Check that the handguard is installed and tight as its maker instructs. Nothing on the handguard itself changes for the snake."],
     ...(RAIL ? [
-      ["Remove everything mounted on the handguard except the bottom accessory rail: front sight, bipod (take it off the rail), lights, rail covers and keymod accessories."],
-      ["Install the bottom accessory rail (if it is not on already) as its maker instructs, at the front of the bottom of the handguard, and tighten its screws now: once the snake is on, some of them are covered."],
+      ["Remove everything mounted on the handguard: front sight, bipod, the bottom accessory rail, lights, rail covers and keymod accessories. (The snake also slides on over the accessory rail, but its screws are easier to reach with the snake on.)"],
     ] : [
       ["Remove everything mounted on the handguard: front sight, bipod or bipod mount, lights, rail covers and keymod accessories."],
     ]),
@@ -151,8 +150,7 @@ const body = [
   h1("7. Installing the snake"),
   h2("Rear piece A"),
   ...steps([
-    [RAIL ? "Slide piece A over the muzzle, tails first, and along the handguard, with the channel in its underside lined up with the bottom accessory rail. It slides like a sleeve, over the rail; do not force it."
-          : "Slide piece A over the muzzle, tails first, and along the handguard. It slides like a sleeve; do not force it."],
+    ["Slide piece A over the muzzle, tails first, and along the handguard. It slides like a sleeve; do not force it."],
     [`Slide it back until a side keymod hole of the handguard shows through the round screw hole on each side (the ${ord(rearHole)} keymod hole counted from the rear).`],
     [`Degrease the two ${screwLen(rb)} screws, put a small amount of threadlocker on the last 3 to 4 threads at the tip (keep it off the snake), and screw one in on each side by hand until the tips enter the keymod holes.`],
     ["Push piece A back (toward the receiver) and hold it there, so the screw tips rest against the rear ends of their keymod holes."],
@@ -182,16 +180,17 @@ const body = [
   h1("9. Accessories"),
   bullet([b("Front sight: "), t("mounts on the top rail right behind the head, on the 3rd to 6th rail slots counted from the muzzle end. The snake leaves this part of the rail clear.")]),
   ...(RAIL ? [
-    bullet([b("Bipod: "), t(`clamps onto the bottom accessory rail where the snake leaves the rail open: either ${railOpen.map((o) => `${o.near} to ${o.far} mm back from the front end of the handguard (${o.len} mm of open rail)`).join(", or ")}. The bipod's rail clamp must fit within that length and be no wider than 40 mm. Elsewhere the snake's bodies pass under the rail.`)]),
+    bullet([b("Bottom accessory rail: "), t(`with the snake installed, bolt the rail to the bottom keymod holes between ${cutNear} mm and ${cutFar} mm back from the front end of the handguard, as its maker instructs. The snake is cut away over this whole stretch, so the rail's screws are open to reach.`)]),
+    bullet([b("Bipod: "), t("clamps onto the bottom accessory rail anywhere along it, as its maker instructs. Rail and bipod come off again without touching the snake.")]),
   ] : [
     bullet([b("Bipod: "), t("mounts on the 4th bottom keymod hole counted from the muzzle end, with a standard keymod bipod adapter. The snake leaves this hole clear.")]),
   ]),
   bullet("The rest of the rail and keymod holes are partly covered by the snake. Install accessories after the snake, with their own hardware and instructions, and remove them before taking the snake off."),
-  ...(RAIL ? figure("fig_rail.png", "Figure 5. From below: the bottom accessory rail (black) inside the channel under the snake, and the two open stretches where a bipod can clamp.") : []),
+  ...(RAIL ? figure("fig_rail.png", "Figure 5. From below: the head piece is cut away under the front of the handguard, leaving the bottom accessory rail (black) fully open.") : []),
 
   h1("10. Removal"),
   ...steps([
-    [RAIL ? "Unload the rifle (section 1). Remove the front sight, the bipod (from the rail; the accessory rail itself stays on) and, if needed, the muzzle device."
+    [RAIL ? "Unload the rifle (section 1). Remove the front sight, the bipod, the bottom accessory rail and, if needed, the muzzle device."
           : "Unload the rifle (section 1). Remove the front sight, the bipod mount and, if needed, the muzzle device."],
     ["Remove the two screws of head piece B (if tight, a short, sharp turn of the hex key breaks the threadlocker). Pull B forward off the muzzle."],
     ["Remove the two screws of rear piece A and pull A forward off the muzzle."],
