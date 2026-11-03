@@ -92,8 +92,11 @@ scanner smooths the undercut. Standard Picatinny accessories will fit it.
   roof of the mouth, curve back only as seen from the side and taper to a point.
 - **Kept clear**:
   - the 31 mm passage through the head for the barrel and muzzle device;
-  - the top rail right behind the head (X 312.5 to 357 mm: the 3rd to 6th rail slots from
-    the muzzle end) for a front sight, and the gaps between the crossings over the top;
+  - the top rail right behind the head (X 312.5 to 357 mm) for a front sight, and the gaps
+    between the crossings over the top. A sight with its lug in the 2nd or 3rd rail slot from the
+    muzzle end has its clamp beside the rail where the necks rise: the head piece is trimmed there
+    (`SIGHT_CLAMP` in `build_double_helix.py`: X 338 to 384 mm, |Y| < 17 mm, Z > 21.5 mm, ends
+    ramped at 45 deg), on both sides;
   - the 4th bottom keymod hole from the muzzle end (X 278.6 to 297.0 mm) for a bipod mount
     (bottom free from X 272.5 to 303.5 mm);
   - the rear clamp (bolts, centre screw, slit) and the receiver end.

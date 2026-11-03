@@ -193,7 +193,7 @@ const body = [
   ...figure("fig_assembled.png", "Figure 4. Installed, rifle's left side, with the screw positions (one screw on each side of each piece)."),
 
   h1("9. Accessories"),
-  bullet([b("Front sight: "), t("mounts on the top rail right behind the head, on the 3rd to 6th rail slots counted from the muzzle end. The snake leaves this part of the rail clear.")]),
+  bullet([b("Front sight: "), t("mounts on the top rail right behind the head, with its recoil lug in the 2nd or 3rd rail slot counted from the muzzle end. The snake leaves the rail clear there, and the necks beside the rail are trimmed for the sight's clamp and clamp knob (up to 34 mm wide). Install the sight after the snake.")]),
   ...(RAIL ? [
     bullet([b("Bottom accessory rail: "), t("with the snake installed, bolt the rail to the bottom keymod holes as its maker instructs. The snake is cut away along the whole bottom, so the rail can go anywhere along it and its screws are open to reach.")]),
     bullet([b("Bipod: "), t("clamps onto the bottom accessory rail anywhere along it, as its maker instructs. Rail and bipod come off again without touching the snake.")]),

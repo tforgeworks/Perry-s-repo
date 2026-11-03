@@ -71,6 +71,9 @@ HEAD_TARGET = np.array([400.0, 9.0, 6.0])   # each neck ends inside the head her
 # ---- keep-outs ----
 SIGHT_X = (312.5, 357.0)   # top rail kept clear for a front sight, from the last top crossing to the head
 SIGHT_YZ = (16.0, 24.0)    # ... over |Y| < 16 and Z > 24 (rail top 31.1)
+# a front sight clamped in the 2nd or 3rd rail slot from the muzzle (360.7 / 350.7): its clamp jaws and knob
+# hang beside the rail, where the necks rise beside it; trimmed from the finished head piece, ends ramped at 45 deg
+SIGHT_CLAMP = dict(x=(338.0, 384.0), half_w=17.0, z=21.5, ramp=6.0)
 BIPOD_X = (272.5, 303.5)   # bottom kept clear for the bipod at the front bottom keymod hole (X 278.6 to 297.0)
 BIPOD_YZ = (12.0, -19.0)   # ... over |Y| < 12 and Z < -19 (bottom flat -18.55)
 
@@ -570,6 +573,16 @@ def add_bolt_holes(piece, bolts):
     return piece
 
 
+def sight_clamp_cutter():
+    c = SIGHT_CLAMP
+    (x0, x1), w, z0, r = c["x"], c["half_w"], c["z"], c["ramp"]
+    top = 70.0
+    # trapezoid in X-Z (ramped ends), extruded across |Y| < w
+    sec = [(x0 - r, top), (x0, z0), (x1, z0), (x1 + r, top)]
+    pts = [[x, y, z] for x, z in sec for y in (-w, w)]
+    return Manifold.hull(Manifold.batch_hull([Manifold.cube((0.01, 0.01, 0.01)).translate((x, y, z)) for x, y, z in pts]))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("meshy_stl", nargs="?", default=os.path.join(HERE, "..", "work", "meshy", "snake_hg", "stl.stl"))
@@ -625,6 +638,7 @@ def main():
     print("bolts:", json.dumps(bolts, indent=1))
     for name in pieces:
         pieces[name] = add_bolt_holes(pieces[name], bolts[name])
+    pieces["front"] = pieces["front"] - sight_clamp_cutter()
     json.dump({"tab_root_mm": list(TAB_ROOT), "tab_clearance_mm": TAB_CLEAR, "joint_x": xj, "joint_planes": [{"strand": pl["strand"], "point": pl["p"].round(2).tolist(),
                                                   "normal": pl["n"].round(4).tolist()} for pl in planes], "tabs": tabs, "tab_size_mm": [TAB_W, TAB_H, TAB_L], "bolts": bolts},
               open(os.path.join(HERE, "..", "data", "snake_lock.json"), "w"), indent=1)
