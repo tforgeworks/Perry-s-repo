@@ -71,9 +71,11 @@ HEAD_TARGET = np.array([400.0, 9.0, 6.0])   # each neck ends inside the head her
 # ---- keep-outs ----
 SIGHT_X = (312.5, 357.0)   # top rail kept clear for a front sight, from the last top crossing to the head
 SIGHT_YZ = (16.0, 24.0)    # ... over |Y| < 16 and Z > 24 (rail top 31.1)
-# a front sight clamped in the 2nd or 3rd rail slot from the muzzle (360.7 / 350.7): its clamp jaws and knob
-# hang beside the rail, where the necks rise beside it; trimmed from the finished head piece, ends ramped at 45 deg
-SIGHT_CLAMP = dict(x=(338.0, 384.0), half_w=17.0, z=21.5, ramp=6.0)
+# the rifle's front sight, measured on the scan, where it is fitted: clamp at X 350 to 368, 34.2 mm wide over its
+# knob (Y -17.6 to +16.6), jaws down to Z 25.1, beside the rail where the necks rise toward the head. Both necks
+# are trimmed there with 2.4 mm clearance on the knob side, 3.4 mm on the other (symmetric trim: room for the
+# clamp opening up when loosened, and for print tolerance), 3.6 mm under the jaws; ends ramped at 45 deg
+SIGHT_CLAMP = dict(x=(338.0, 384.0), half_w=20.0, z=21.5, ramp=6.0)
 BIPOD_X = (272.5, 303.5)   # bottom kept clear for the bipod at the front bottom keymod hole (X 278.6 to 297.0)
 BIPOD_YZ = (12.0, -19.0)   # ... over |Y| < 12 and Z < -19 (bottom flat -18.55)
 
