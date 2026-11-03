@@ -159,7 +159,7 @@ piece's two bolts and pull it forward. The handguard stays on the rifle.
 
 Hardware for the snake: 4 x M5 heat-set inserts (M5 x 5.8 mm, 7.0 mm OD, 6.4 mm hole) and
 2 x M5 x 12 + 2 x M5 x 16 socket head cap screws (ISO 4762, class 12.9). Every bolt (clamp and snake) gets
-medium (blue) threadlocker. The customer **user manual** for the snake kit (the two pieces, the
+medium (blue) threadlocker. The **commercial user manual** for both versions (specifications, material data and chemical compatibility, dimensioned drawings, cross-sections, installation, care, inspection, troubleshooting) is [manual/commercial/Snake_Handguard_Kit_User_Manual.docx](manual/commercial/Snake_Handguard_Kit_User_Manual.docx) ([PDF](manual/commercial/Snake_Handguard_Kit_User_Manual.pdf)), built by `scripts/commercial_figures.py` and `scripts/build_commercial_manual.js`. The shorter customer **user manual** for the snake kit (the two pieces, the
 inserts and the four screws, fitted to the customer's own handguard) is
 [manual/Snake_Handguard_Kit_User_Manual.docx](manual/Snake_Handguard_Kit_User_Manual.docx)
 ([PDF](manual/Snake_Handguard_Kit_User_Manual.pdf)). The muzzle device must be under 31 mm in diameter to pass through the
