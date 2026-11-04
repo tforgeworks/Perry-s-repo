@@ -221,7 +221,7 @@ const body = [
   ]),
 
   h1("12. Care"),
-  bullet("The snake is printed in polycarbonate (PC). It takes the handguard's normal heat, but let the rifle cool between long strings of rapid fire."),
+  bullet("Both pieces are made of polycarbonate (PC) by fused-filament 3D printing at 0.2 mm layer height with a 0.4 mm nozzle. Polycarbonate is tough, impact resistant and keeps its shape at the temperatures a handguard reaches in normal use. Polycarbonate is chosen because it is extremely durable and resilient yet light as a feather, so it does not affect the feel and physics of the gun during each shot. Let the rifle cool between long strings of rapid fire."),
   bullet("Clean it with a soft brush and a cloth dampened with mild soap and water, then dry it."),
   bullet([b("Keep chemicals off the snake. "), t("Polycarbonate can crack when it touches many solvents: keep bore cleaners, gun solvents, brake and parts cleaners, aerosol lubricants, acetone, paint strippers and anaerobic threadlockers off it, and wipe off any oil that gets on it straight away. Clean the rifle with the snake removed, or cover the snake while you clean.")]),
   bullet("Check the witness marks and look the snake over for cracks before each range trip. Do not use a cracked piece."),

@@ -575,6 +575,20 @@ def add_bolt_holes(piece, bolts):
     return piece
 
 
+JAW_FILL_X = (FM.THROAT[1] - 0.4, 401.0)   # under the lower jaw: from the stop ring's front face to where the jaw is low enough
+
+
+def jaw_fill(snake):
+    """Close the notch between the stop ring's bottom and the underside of the lower jaw: a smooth
+    taper (hull) from the ring's lower edge to the jaw's section at JAW_FILL_X[1]."""
+    x0, x1 = JAW_FILL_X
+    low = lambda xa, xb: Manifold.cube((xb - xa, 60.0, 40.0)).translate((xa, -30.0, -15.5 - 40.0))
+    ring = HG.cyl_x(FM.THROAT[2], x0, x0 + 0.4) ^ low(x0, x0 + 0.4)
+    jaw = snake ^ low(x1, x1 + 0.4)
+    fill = Manifold.batch_hull([ring, jaw])
+    return fill - HG.cyl_x(BS.PASSAGE_R, x0 - 1.0, x1 + 1.0)
+
+
 def sight_clamp_cutter():
     c = SIGHT_CLAMP
     (x0, x1), w, z0, r = c["x"], c["half_w"], c["z"], c["ramp"]
@@ -614,6 +628,7 @@ def main():
     print("voxel snake:", len(snake_tm.faces), "faces, watertight", snake_tm.is_watertight, f"{time.time() - t0:.0f}s")
     snake = BS.to_manifold(snake_tm) - BS.handguard_envelope()
     snake = snake + HG.cyl_x(FM.THROAT[2], FM.THROAT[0], FM.THROAT[1])     # stop ring inside the head
+    snake = snake + jaw_fill(snake)
     snake = snake - HG.cyl_x(BS.PASSAGE_R, HG.X_END - 0.5, 540.0)          # barrel passage, all the way out
     if a.tolerance > 0:
         snake = snake.simplify(a.tolerance)

@@ -15,7 +15,7 @@ const M = JSON.parse(fs.readFileSync(path.join(OUT, "measurements.json")));
 const LOCK = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "snake_lock.json")));
 const RL = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "bipod_rail.json")));
 const FONT = "Times New Roman";
-const DOC_NO = "TF-SHK-UM", REV = "Revision A", DATE = "November 2026";
+const DOC_NO = "TF-SHK-UM", REV = "Revision B", DATE = "November 2026";
 const X_END = 387.4;                                        // front end of the handguard, from its rear face
 const f1 = (v) => Number(v).toFixed(1);
 const fromFront = (x) => X_END - x;
@@ -177,7 +177,7 @@ const body = [
   // ---------------- 5
   h1("5. Material specifications"),
   h2("5.1 Material"),
-  p("Both pieces are made of polycarbonate (PC) by fused-filament 3D printing at 0.2 mm layer height with a 0.4 mm nozzle. Polycarbonate is tough, impact resistant and keeps its shape at the temperatures a handguard reaches in normal use."),
+  p("Both pieces are made of polycarbonate (PC) by fused-filament 3D printing at 0.2 mm layer height with a 0.4 mm nozzle. Polycarbonate is tough, impact resistant and keeps its shape at the temperatures a handguard reaches in normal use. Polycarbonate is chosen because it is extremely durable and resilient yet light as a feather, so it does not affect the feel and physics of the gun during each shot."),
   table([4200, 2400, 2760], [
     ["Property (typical for printing-grade polycarbonate)", "Typical value", "Notes"],
     ["Density", "1.20 g/cm3", ""],
