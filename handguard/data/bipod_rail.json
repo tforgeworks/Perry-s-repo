@@ -1,0 +1,17 @@
+{
+ "rail_x": [
+  257.2,
+  376.1
+ ],
+ "rail_half_width": 10.9,
+ "rail_bottom_z": -28.2,
+ "cut_x": [
+  -10.0,
+  378.0
+ ],
+ "cut_z": -15.0,
+ "pieces": [
+  "rear",
+  "front"
+ ]
+}

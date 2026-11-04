@@ -1,0 +1,15 @@
+{
+ "file": "../handguard_base.stl",
+ "volume_cm3": 142.4,
+ "weakest_section_X_mm": 375.3,
+ "min_area_mm2": 282.4,
+ "min_I_vertical_mm4": 69839,
+ "min_I_side_mm4": 33092,
+ "peak_stress_vertical_200N_MPa": 21.8,
+ "peak_stress_side_200N_MPa": 33.1,
+ "tip_deflection_vertical_200N_mm": 5.59,
+ "tip_deflection_side_200N_mm": 12.76,
+ "safety_factor_200N": 1.21,
+ "recoil_inertia_N": 381,
+ "recoil_axial_stress_MPa": 1.35
+}
