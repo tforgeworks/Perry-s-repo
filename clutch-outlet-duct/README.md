@@ -30,8 +30,10 @@ From the scan and the customer's photos:
 | box, rectangular mouth, mounting ear, molded "5439157 REV04" text, upper tube | taken directly from the scan (see Verification) |
 | melted and abraded J-bend | scan surface with about 1.2 mm of smoothing, which removes the belt residue and scorch texture but keeps the shape (median 0.12 mm from the scan) |
 | outlet cuff | rebuilt as a straight round cuff on the axis measured from the intact tube end, then lofted into the last undamaged tube section |
+| outlet-rim keying tab | added from photos of the OEM part: a flat tab on the outer side of the bend, just behind the cuff end (the scan only has a torn remnant) |
 | small area between the box and the tube that the scanner could not reach (about 100 cm²) | smooth surface bridged from the surrounding scan |
-| wall | 2.5 mm, 3.0 mm in the cuff. Wherever the scanner caught both faces of a wall (mouth collar, box end), the scanned thickness is kept. |
+| wall | 2.5 mm, 3.0 mm in the cuff. Wherever the scanner caught both faces of a wall (mouth collar, box end), the scanned thickness is kept. Two spots on the box that came out thinner than 1.4 mm (where the scanner missed the outside face) are brought up to 2.2 mm. |
+| scan noise | about 120 tiny specks of stray scan points stuck to the outside surface are removed |
 
 ## Measurements
 
@@ -41,9 +43,10 @@ From the scan and the customer's photos:
 | outlet cuff outside diameter | **66.8 mm** |
 | outlet cuff inside diameter | 60.8 mm (3.0 mm wall) |
 | straight round cuff length | 50 mm, after a 22 mm loft from the oval tube |
+| outlet-rim keying tab | 7 mm tall (radial), 10 mm long, 3 mm thick, ending 4 mm before the cuff end, on the outer side of the bend |
 | tube section before the cuff | oval, about 78 × 56 mm, 225 mm outside perimeter |
 | wall thickness elsewhere | 2.5 mm (scan shows about 2 mm at the box end and 3 mm at the outlet) |
-| volume | 314 cm³, about 340 g in ASA, 360 g in PA6-CF, 400 g in PETG at full density |
+| volume | 315 cm³, about 340 g in ASA, 360 g in PA6-CF, 400 g in PETG at full density |
 
 [`reconstruction.json`](reconstruction.json) holds the cuff axis, center and the full set of build parameters.
 
@@ -58,8 +61,10 @@ These are the numbers I could not measure exactly, because that part of the orig
 2. **Cuff length.** The cuff ends 36 mm past the measured outlet section, where the furthest
    surviving piece of the original wall ends. The original might have been slightly longer, but not
    shorter.
-3. **Rim tab.** The sister part 5438392 has a small keying tab on the outlet rim, and there is a
-   stub of one on the broken end. There was not enough left to place or size it, so it is not modeled.
+3. **Rim tab.** Modeled from photos of the OEM part, not measured: the scan only has a torn
+   remnant at that spot. Its size and its position around the rim should be checked against the
+   slot in the rubber coupler (or a photo of an undamaged duct). Its settings are in
+   `scripts/addtab.py`.
 4. **Hidden area between the box and the tube.** This area is bridged smoothly, not measured.
    It doesn't touch a mating part.
 
@@ -69,14 +74,20 @@ Distances from the scan points to the repaired model (`verification/verification
 
 | region | median | 95th percentile | within 0.25 mm | within 0.5 mm |
 |---|---|---|---|---|
-| untouched (more than 160 mm from the outlet) | 0.10 mm | 0.20 mm | 99.1 % | 99.97 % |
+| untouched (more than 160 mm from the outlet) | 0.10 mm | 0.20 mm | 98.6 % | 99.65 % |
 | smoothed melted bend | 0.12 mm | 0.25 mm | 94.8 % | 99.3 % |
 | rebuilt outlet (vs the broken scan) | 0.37 mm | 11 mm | 45 % | 53 % |
 
-The first two rows show the model follows the scan to within scan noise. The last row is large on purpose: there the model differs
+The first two rows show the model follows the scan to within scan noise. The few untouched-area points
+further than 0.5 mm away are the removed noise specks and the inside face of the two thickened spots. The last row is large on purpose: there the model differs
 from the broken scan by design (crushed, torn and missing material).
 
 ![deviation map](verification/deviation_map.png)
+
+## Customer check
+
+`customer/` holds annotated screenshots and `customer/message.md` holds a message asking the customer to
+confirm the model and measure the coupler, the cuff length and the tab.
 
 ## Printing notes
 

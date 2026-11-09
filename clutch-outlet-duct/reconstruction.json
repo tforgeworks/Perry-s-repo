@@ -76,5 +76,24 @@
   "flap_slack": 0.6,
   "flap_r_full": 85.0,
   "support_slack": 0.4
+ },
+ "rim_tab": {
+  "angle_deg": -140.0,
+  "radial_out_mm": 7.0,
+  "axial_len_mm": 10.0,
+  "thick_mm": 3.0,
+  "gap_from_end_mm": 4.0,
+  "edge_round_mm": 1.0,
+  "fillet_mm": 1.0,
+  "center_work_frame": [
+   140.6522264020279,
+   93.26813503532817,
+   25.785333396965747
+  ],
+  "radial_dir": [
+   -0.5506764583678928,
+   0.549244994716926,
+   0.6285581707191454
+  ]
  }
 }

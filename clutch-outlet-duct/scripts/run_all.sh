@@ -24,6 +24,9 @@ py fillpts.py; py orient_fill.py  # smooth fill for areas the scanner did not re
 py gappts.py; py vote2.py; py outerpts.py
 # wall field from every scanned face, rebuilt outlet, final mesh
 py fa.py; py upsec.py; py wfill.py; py crotch_pts.py; py wfill2.py; py dall.py
-py build.py; py final_mesh.py; py export.py
+py build.py
+py addtab.py                  # outlet-rim keying tab -> W4.npy
+py spikes.py W4.npy; py cleanup.py   # remove scan-noise specks, thicken thin spots -> W5.npy
+py final_mesh.py W5.npy; py export.py
 py verify.py; py devfig.py; py hero.py
 echo "result: $(pwd)/final_export.stl"

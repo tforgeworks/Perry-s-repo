@@ -1,7 +1,8 @@
 import numpy as np, trimesh, fast_simplification, gc, time
 from skimage import measure
 t=time.time()
-W=np.load('W3.npy'); g=np.load('grid.npy'); lo=g[:3]; h=g[3]
+import sys
+W=np.load(sys.argv[1] if len(sys.argv)>1 else 'W3.npy'); g=np.load('grid.npy'); lo=g[:3]; h=g[3]
 v,f,_,_=measure.marching_cubes(W,0.0,allow_degenerate=False); del W; gc.collect()
 v=v*h+lo+h/2
 print('mc',len(f),time.time()-t,flush=True)
