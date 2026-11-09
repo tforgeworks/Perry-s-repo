@@ -84,6 +84,44 @@ from the broken scan by design (crushed, torn and missing material).
 
 ![deviation map](verification/deviation_map.png)
 
+## Revised version (fire damage and contaminants removed)
+
+[`polaris_5439157_outlet_duct_revised.stl`](polaris_5439157_outlet_duct_revised.stl) is a second,
+cleaner model. The first STL above is kept unchanged. The revised one aims for the part as
+originally molded, before the fire: no scorch crust, no heat dents, no seams where the scanner
+couldn't see.
+
+- **Tube rebuilt as a design-intent sweep.** The original is blow-molded, so its tube is a smooth
+  sweep. I fit one to the scan: a smoothed centerline with smooth cross-sections (14 angular
+  harmonics, a cubic B-spline every 18 mm along the length). The fit is robust, so outward crust
+  and inward dents count as outliers and don't pull the surface. About 4% of the tube scan was
+  crust above the surface and 1% dents below it (see `verification/revised_tube_crust_and_dents.png`).
+  The crushed last stretch before the outlet is left out of the fit and bridged by the sweep.
+- **Box faces: smart smoothing.** A robust local surface fit (bilateral moving least squares)
+  uses only neighbors on the same face, rejects outliers and caps each move at 1.5–2 mm. That
+  removes the seam and waviness where the scanner missed the inside corner between the tube and
+  the box, without rounding edges or shrinking the part.
+- **Left untouched:** the mounting ear, the molded "5439157 REV04" text and recycling mark, the
+  mouth lip, the rebuilt outlet cuff and the rim tab.
+- **Tube wall** is a uniform 2.5 mm. The scanner couldn't see inside the tube, so this is an
+  assumption, not a measurement.
+
+| region (revised vs scan) | median | 95th pct | within 0.5 mm |
+|---|---|---|---|
+| box and upper tube | 0.12 mm | 0.29 mm | 97.6 % |
+| fire-damaged tube | 0.13 mm | 0.48 mm | 95.3 % |
+
+The remaining differences are the crust and dents that were deliberately removed. Volume is 303 cm³.
+
+**Shrinkage.** Heat can make molded plastic shrink a little. The scan alone can't tell overall
+shrinkage apart from the original design, so the revised model keeps the scanned size. The
+customer's measurement of the rubber boot settles the one dimension that matters for fit (the
+cuff diameter).
+
+Pipeline: `scripts/rebuild_rev.sh` (the sweep fit, sweep application, rebuild, then `mls.py`
+twice and `foldfix.py`). The before/after of the inside corner is
+`verification/revised_circled_area_before_after.png`. Screenshots for the customer are in `customer/revised/`.
+
 ## Customer check
 
 `customer/` holds annotated screenshots and `customer/message.md` holds a message asking the customer to

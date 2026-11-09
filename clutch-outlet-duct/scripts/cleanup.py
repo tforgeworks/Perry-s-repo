@@ -1,5 +1,6 @@
 # Remove scan-noise specks that stick out past the outer skin, and bring thin wall spots up to a 2.2 mm minimum.
-import numpy as np, json, gc
+import numpy as np, json, gc, sys
+KEEP_SPECKS='--keep-specks' in sys.argv
 from scipy import ndimage as ndi
 from scipy.spatial import cKDTree
 W=np.load('W4.npy'); g=np.load('grid.npy'); lo=g[:3]; h=g[3]
@@ -18,7 +19,7 @@ for k,sl in enumerate(objs,start=1):
     if np.mean((rr<46)&(d>p['d0']-5))>0.3: continue          # new cuff, rim and tab: leave alone
     e=E[idx[:,0],idx[:,1],idx[:,2]]
     if sz[k]<2000:
-        if np.mean(e>0.5)>0.5:                                # sticks out past the outer skin -> noise speck
+        if not KEEP_SPECKS and np.mean(e>0.5)>0.5:                                # sticks out past the outer skin -> noise speck
             W[idx[:,0],idx[:,1],idx[:,2]]=np.maximum(W[idx[:,0],idx[:,1],idx[:,2]],0.05); removed+=1
     else:
         # thin wall patch: add a 2.2 mm shell inward from the outer skin around it, away from the mouth opening
@@ -31,4 +32,4 @@ for k,sl in enumerate(objs,start=1):
         shell=np.maximum(Ej,-Ej-2.2)
         W[jj[:,0],jj[:,1],jj[:,2]]=np.minimum(W[jj[:,0],jj[:,1],jj[:,2]],shell); thick+=1
 print('specks removed',removed,'thin patches thickened',thick)
-np.save('W5.npy',W)
+np.save('W6.npy' if KEEP_SPECKS else 'W5.npy',W)
