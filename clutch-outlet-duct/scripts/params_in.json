@@ -1,0 +1,23 @@
+{
+ "cuff_center_offset_e1": -1.5,
+ "cuff_center_offset_e2": -1.8,
+ "Ro": 33.4,
+ "t_wall": 2.5,
+ "t_cuff": 3.0,
+ "d_end": 36.0,
+ "d0": -36.0,
+ "d1": -14.0,
+ "handover": 5.0,
+ "local_R": 60.0,
+ "flap_R_at_d1": 34.0,
+ "flap_R_slope": 0.35,
+ "melt_r_full": 130.0,
+ "melt_r_fade": 30.0,
+ "melt_sigma": 1.2,
+ "fill_sigma": 4.0,
+ "final_sigma": 0.3,
+ "flap_sigma": 3.0,
+ "flap_slack": 0.6,
+ "flap_r_full": 85.0,
+ "support_slack": 0.4
+}
