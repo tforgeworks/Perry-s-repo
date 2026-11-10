@@ -1,0 +1,10 @@
+import numpy as np, fast_simplification, trimesh, time
+V=np.load('verts.npy'); F=np.load('faces.npy')
+t=time.time()
+v2,f2=fast_simplification.simplify(V.astype(np.float32),F,target_count=600000)
+print('dec',len(f2),time.time()-t)
+m=trimesh.Trimesh(v2,f2,process=True)
+m.export('scan_600k.ply')
+print('watertight',m.is_watertight,'euler',m.euler_number,'vol',m.volume if m.is_volume else None)
+cc=m.split(only_watertight=False)
+print('components',len(cc),[len(c.faces) for c in sorted(cc,key=lambda c:-len(c.faces))[:8]])

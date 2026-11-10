@@ -1,0 +1,99 @@
+{
+ "note": "Coordinates: c0/axis/cuff_center are in the scan-aligned (PCA) working frame. scan_xyz = work_xyz @ pca_rotation + pca_origin.",
+ "pca_origin": [
+  -144.26180997801018,
+  303.24614470725834,
+  -478.7669413245326
+ ],
+ "pca_rotation": [
+  [
+   0.9966426858945947,
+   0.05643653946489393,
+   0.059315037436011735
+  ],
+  [
+   0.05268756245238298,
+   -0.9966234478892921,
+   0.06297399368060998
+  ],
+  [
+   0.0626687914007782,
+   -0.05963740546407709,
+   -0.996250973627569
+  ]
+ ],
+ "outlet": {
+  "end_section_center_c0": [
+   146.44126160822665,
+   50.60840833599484,
+   6.952458186301852
+  ],
+  "cuff_axis": [
+   0.5604179813148908,
+   0.8013411145816784,
+   -0.2092465156219717
+  ],
+  "cuff_center": [
+   145.4278948765252,
+   51.77671838260597,
+   8.712611447261876
+  ],
+  "cuff_outer_diameter_mm": 66.8,
+  "cuff_wall_mm": 3.0,
+  "cuff_inner_diameter_mm": 60.8,
+  "cuff_end_from_center_mm": 36.0,
+  "loft_start_mm": -36.0,
+  "loft_end_mm": -14.0,
+  "intact_section_at_loft_start": {
+   "center_offset_mm": [
+    10.283742861300063,
+    1.8718989851224037
+   ],
+   "radius_min_mm": 26.74023554906441,
+   "radius_max_mm": 38.16310950399635
+  }
+ },
+ "wall_mm": 2.5,
+ "build_params": {
+  "cuff_center_offset_e1": -1.5,
+  "cuff_center_offset_e2": -1.8,
+  "Ro": 33.4,
+  "t_wall": 2.5,
+  "t_cuff": 3.0,
+  "d_end": 36.0,
+  "d0": -36.0,
+  "d1": -14.0,
+  "handover": 5.0,
+  "local_R": 60.0,
+  "flap_R_at_d1": 34.0,
+  "flap_R_slope": 0.35,
+  "melt_r_full": 130.0,
+  "melt_r_fade": 30.0,
+  "melt_sigma": 1.2,
+  "fill_sigma": 4.0,
+  "final_sigma": 0.3,
+  "flap_sigma": 3.0,
+  "flap_slack": 0.6,
+  "flap_r_full": 85.0,
+  "support_slack": 0.4
+ },
+ "rim_tab": {
+  "angle_deg": -140.0,
+  "radial_out_mm": 7.0,
+  "axial_len_mm": 10.0,
+  "thick_mm": 3.0,
+  "gap_from_end_mm": 4.0,
+  "edge_round_mm": 1.0,
+  "fillet_mm": 1.0,
+  "center_work_frame": [
+   140.6522264020279,
+   93.26813503532817,
+   25.785333396965747
+  ],
+  "radial_dir": [
+   -0.5506764583678928,
+   0.549244994716926,
+   0.6285581707191454
+  ]
+ }
+}
