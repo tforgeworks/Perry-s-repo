@@ -122,6 +122,24 @@ Pipeline: `scripts/rebuild_rev.sh` (the sweep fit, sweep application, rebuild, t
 twice and `foldfix.py`). The before/after of the inside corner is
 `verification/revised_circled_area_before_after.png`. Screenshots for the customer are in `customer/revised/`.
 
+### Revised v2: warping on the box side removed
+
+[`polaris_5439157_outlet_duct_revised_v2.stl`](polaris_5439157_outlet_duct_revised_v2.stl) is the
+revised model with the irregular ridges removed from the side of the box next to the tube joint.
+The two earlier STLs are kept unchanged. About 85% of that face had no scan data (the scanner
+couldn't see into that corner).
+
+- **Outer face:** smoothed with a bending-energy fill that also has a "stay close" term
+  (smoothing scale 9 mm). That removes short irregular ripples but keeps the face's natural
+  curve. The surface moved at most 2.6 mm (95% of points under 1.4 mm).
+- **Inside wall:** moved to sit exactly 2.5 mm from the new outer face (measured 2.48–2.51 mm).
+- **Accuracy and size:** everywhere else matches the scan as in the revised model. Volume is
+  300 cm³, because the wall in that corner had come out thicker than 2.5 mm.
+
+Before/after: `verification/revised_v2_warp_before_after.png`. Customer screenshots are in
+`customer/revised_v2/`. Scripts: `scripts/bifair.py` (run with `--whole --grow=10 --ell=9`), then
+`scripts/offset_inner.py`.
+
 ## Customer check
 
 `customer/` holds annotated screenshots and `customer/message.md` holds a message asking the customer to
