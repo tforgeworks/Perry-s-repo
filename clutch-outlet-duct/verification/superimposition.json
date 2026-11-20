@@ -1,0 +1,64 @@
+{
+ "note": "Scan points to the nearest model surface. Both are in the scan's own coordinates; no re-alignment was applied. Positive = scan stands proud of the model.",
+ "scan_points_used": 3333296,
+ "all": {
+  "scan_points": 3333296,
+  "median_mm": 0.042,
+  "p95_mm": 0.841,
+  "within_0_25mm": 0.8508,
+  "within_0_5mm": 0.9116,
+  "within_1mm": 0.9615,
+  "mean_signed_mm": 0.052
+ },
+ "Box, mouth and mounting ear": {
+  "scan_points": 1599043,
+  "median_mm": 0.022,
+  "p95_mm": 0.25,
+  "within_0_25mm": 0.9501,
+  "within_0_5mm": 0.9782,
+  "within_1mm": 0.9924,
+  "mean_signed_mm": 0.01
+ },
+ "Tube": {
+  "scan_points": 1264821,
+  "median_mm": 0.052,
+  "p95_mm": 0.429,
+  "within_0_25mm": 0.8897,
+  "within_0_5mm": 0.9606,
+  "within_1mm": 0.9902,
+  "mean_signed_mm": 0.04
+ },
+ "Elbow at the outlet end": {
+  "scan_points": 349558,
+  "median_mm": 0.297,
+  "p95_mm": 2.284,
+  "within_0_25mm": 0.4676,
+  "within_0_5mm": 0.6062,
+  "within_1mm": 0.8412,
+  "mean_signed_mm": 0.17
+ },
+ "Outlet cuff": {
+  "scan_points": 119874,
+  "median_mm": 0.742,
+  "p95_mm": 3.486,
+  "within_0_25mm": 0.2336,
+  "within_0_5mm": 0.3956,
+  "within_1mm": 0.5957,
+  "mean_signed_mm": 0.404
+ },
+ "best_fit_correction_on_box_and_tube": {
+  "rotation_deg": 0.015,
+  "translation_mm": 0.0232,
+  "largest_point_shift_mm": 0.043,
+  "rms_before_mm": 0.1468,
+  "rms_after_mm": 0.146
+ },
+ "model_surface_with_scan_within_1mm": 0.505,
+ "box_side_next_to_tube_joint_smoothed_in_v2": {
+  "scan_points": 171137,
+  "median_mm": 0.019,
+  "p95_mm": 0.178,
+  "within_1mm": 1.0,
+  "max_mm": 0.69
+ }
+}

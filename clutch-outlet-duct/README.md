@@ -139,6 +139,40 @@ is round. The STL is watertight, one solid body, 920k triangles, 300 cm³, 372 x
 Scripts: `scripts/outlet_v3/run_v3.sh` lists the steps in order. Labeled customer pictures are in
 `customer/revised_v3/`, and the numbers above are in `verification/verification_revised_v3.json`.
 
+### Superimposition check: revised v3 against the scan
+
+The scan and the model are compared in the scan's own coordinates, with no re-alignment. A best-fit
+correction on the box and tube would rotate the model 0.015 degrees and move no point more than
+0.04 mm, so there is no alignment error to remove.
+
+![superimposition overview](verification/superimposition_overview.png)
+
+| region | scan points | median | within 0.5 mm | within 1 mm |
+|---|---|---|---|---|
+| box, mouth and mounting ear | 1.60 M | 0.02 mm | 97.8 % | 99.2 % |
+| tube | 1.26 M | 0.05 mm | 96.1 % | 99.0 % |
+| elbow at the outlet end | 0.35 M | 0.30 mm | 60.6 % | 84.1 % |
+| outlet cuff | 0.12 M | 0.74 mm | 39.6 % | 59.6 % |
+| whole scan | 3.33 M | 0.04 mm | 91.2 % | 96.2 % |
+
+Distances are from scan points (every third point of the scan) to the nearest model surface.
+
+- **Box and tube.** 0.9 % of these points are more than 1 mm from the model (2.4 mm at most), in
+  three places: the underside where the tube flares into the box (about 6 cm², where the smooth
+  tube rebuild flattened a small molded contour), the inside corner between the tube and the box
+  next to the mounting ear (smoothed on request), and a spot by the mouth where a thin wall was
+  thickened to 2.2 mm.
+- **Elbow.** The differences are burned and melted areas, plus one side that is restored from the
+  other half and stands 0.3 to 0.7 mm proud of the heat-affected scan.
+- **Cuff.** The scanned cuff is oval: its outside radius varies from about 29 to 36 mm around the
+  rim. The model is a round 66 mm, so they differ by up to 3.5 mm. This is the least certain part.
+
+![outlet end](verification/superimposition_outlet.png)
+
+![cross-sections](verification/superimposition_sections.png)
+
+Scripts: `scripts/outlet_v3/superimpose.py` and `superimpose_fig.py`. Numbers: `verification/superimposition.json`.
+
 ## Revised version (fire damage and contaminants removed)
 
 [`polaris_5439157_outlet_duct_revised.stl`](polaris_5439157_outlet_duct_revised.stl) is a second,
