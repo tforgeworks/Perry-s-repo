@@ -1,0 +1,74 @@
+{
+ "step_at_splice_mm": {
+  "median": 0.028,
+  "p95": 0.209,
+  "max": 0.338
+ },
+ "unchanged_part_vs_v2_mm": {
+  "max": 0.439
+ },
+ "tube leading into the elbow": {
+  "scan_points": 272520,
+  "median_mm": 0.14,
+  "p90_mm": 0.26,
+  "within_0_5mm": 0.984,
+  "within_1mm": 0.998,
+  "further_than_3mm": 0.0
+ },
+ "elbow body (dome)": {
+  "scan_points": 306460,
+  "median_mm": 0.32,
+  "p90_mm": 1.17,
+  "within_0_5mm": 0.608,
+  "within_1mm": 0.853,
+  "further_than_3mm": 0.022
+ },
+ "outlet cuff": {
+  "scan_points": 84421,
+  "median_mm": 0.81,
+  "p90_mm": 2.41,
+  "within_0_5mm": 0.358,
+  "within_1mm": 0.573,
+  "further_than_3mm": 0.063
+ },
+ "rebuilt_end_wall_mm": {
+  "p1": 1.6,
+  "p5": 2.32,
+  "median": 2.57,
+  "p95": 3.6
+ },
+ "mesh": {
+  "faces": 920462,
+  "watertight": true,
+  "bodies": 1,
+  "boundary_edges": 0,
+  "nonmanifold_edges": 0,
+  "volume_cm3": 299.9,
+  "extents_aligned_mm": [
+   371.7,
+   175.3,
+   153.7
+  ],
+  "units": "mm",
+  "frame": "same coordinates as Mesh_Tressa.stl",
+  "manifold_status": "Error.NoError"
+ },
+ "outlet": {
+  "cuff_outside_diameter_mm": 66.0,
+  "cuff_inside_diameter_mm": 59.0,
+  "cuff_wall_mm": 3.5,
+  "rim_outside_diameter_mm": 67.8,
+  "cuff_length_rim_to_tube_mm": 24.0,
+  "cuff_axis": [
+   -0.8147515386652842,
+   0.5038463502911696,
+   -0.286912505026916
+  ],
+  "cuff_center": [
+   132.399655464551,
+   63.237199992571725,
+   6.489076636551174
+  ],
+  "old_axis_error_deg": 89.6
+ }
+}

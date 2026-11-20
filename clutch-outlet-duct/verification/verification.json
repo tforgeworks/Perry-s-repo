@@ -1,0 +1,40 @@
+{
+ "untouched (more than 160 mm from outlet end)": {
+  "scan_points": 1506469,
+  "median_mm": 0.097,
+  "p95_mm": 0.202,
+  "within_0_25mm": 0.9862,
+  "within_0_5mm": 0.9965,
+  "within_1mm": 0.9973
+ },
+ "smoothed melted bend (95-160 mm)": {
+  "scan_points": 407256,
+  "median_mm": 0.119,
+  "p95_mm": 0.253,
+  "within_0_25mm": 0.9475,
+  "within_0_5mm": 0.9929,
+  "within_1mm": 0.999
+ },
+ "rebuilt outlet (within 95 mm), compared with the broken scan": {
+  "scan_points": 586247,
+  "median_mm": 0.365,
+  "p95_mm": 10.977,
+  "within_0_25mm": 0.4539,
+  "within_0_5mm": 0.5325,
+  "within_1mm": 0.6198
+ },
+ "mesh": {
+  "faces": 799972,
+  "watertight": true,
+  "bodies": 1,
+  "volume_cm3": 315.0,
+  "surface_area_mm2": 243176,
+  "extents_aligned_mm": [
+   394.4,
+   169.3,
+   153.9
+  ],
+  "units": "mm",
+  "frame": "same coordinates as Mesh_Tressa.stl"
+ }
+}

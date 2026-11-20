@@ -1,0 +1,35 @@
+{
+ "box and upper tube (more than 200 mm from outlet end)": {
+  "scan_points": 1040390,
+  "median_mm": 0.117,
+  "p95_mm": 0.302,
+  "within_0_5mm": 0.9744
+ },
+ "fire-damaged tube (95-200 mm)": {
+  "scan_points": 671722,
+  "median_mm": 0.132,
+  "p95_mm": 0.482,
+  "within_0_5mm": 0.953
+ },
+ "rebuilt outlet (within 95 mm), vs the broken scan": {
+  "scan_points": 524071,
+  "median_mm": 0.339,
+  "p95_mm": 10.077,
+  "within_0_5mm": 0.5552
+ },
+ "mesh": {
+  "faces": 799004,
+  "watertight": true,
+  "bodies": 1,
+  "boundary_edges": 0,
+  "nonmanifold_edges": 0,
+  "volume_cm3": 300.3,
+  "extents_aligned_mm": [
+   394.4,
+   168.9,
+   153.7
+  ],
+  "units": "mm",
+  "frame": "same coordinates as Mesh_Tressa.stl"
+ }
+}
