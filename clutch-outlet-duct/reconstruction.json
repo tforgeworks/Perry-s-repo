@@ -95,5 +95,39 @@
    0.549244994716926,
    0.6285581707191454
   ]
+ },
+ "outlet_v3": {
+  "note": "Corrected outlet end (revised v3). Same working frame as the rest of this file.",
+  "cuff_axis": [
+   -0.8147515386652842,
+   0.5038463502911696,
+   -0.286912505026916
+  ],
+  "cuff_center": [
+   132.399655464551,
+   63.237199992571725,
+   6.489076636551174
+  ],
+  "cuff_outside_diameter_mm": 66.0,
+  "cuff_inside_diameter_mm": 59.0,
+  "rim_outside_diameter_mm": 67.8,
+  "cuff_length_rim_to_tube_mm": 24.0,
+  "mirror_plane_normal": [
+   -0.20121333016986795,
+   0.1596753157226955,
+   0.9664455438930892
+  ],
+  "mirror_plane_offset_mm": 1.2531297542962174,
+  "splice_cut_point": [
+   120.99696639538197,
+   2.0844638040692263,
+   12.42129498637438
+  ],
+  "splice_cut_normal_toward_box": [
+   -0.66211403809998,
+   -0.7460441767361569,
+   -0.07087373920577457
+  ],
+  "angle_between_old_and_corrected_cuff_axis_deg": 89.6
  }
 }

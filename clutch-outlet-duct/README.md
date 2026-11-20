@@ -5,7 +5,11 @@ broken part (`Mesh_Tressa.stl`, about 20 million triangles). It is item 8 on the
 "Clutch Cover and Ducting" diagram. It fits the 2014–2016 Sportsman 850 and 1000 Touring and SP
 models, among others.
 
-Output: [`polaris_5439157_outlet_duct_repaired.stl`](polaris_5439157_outlet_duct_repaired.stl)
+**Use [`polaris_5439157_outlet_duct_revised_v3.stl`](polaris_5439157_outlet_duct_revised_v3.stl).**
+The three earlier STLs are kept for history, but their outlet end is wrong: it points the wrong way
+(see "Revised v3" below). Do not print them.
+
+First output: [`polaris_5439157_outlet_duct_repaired.stl`](polaris_5439157_outlet_duct_repaired.stl)
 
 - Units are millimeters.
 - The STL is in **the same coordinates as the scan**, so you can overlay the two directly.
@@ -84,6 +88,57 @@ from the broken scan by design (crushed, torn and missing material).
 
 ![deviation map](verification/deviation_map.png)
 
+## Revised v3: outlet end corrected
+
+[`polaris_5439157_outlet_duct_revised_v3.stl`](polaris_5439157_outlet_duct_revised_v3.stl) replaces the
+outlet end. A test print of v2 next to the original showed the outlet did not match.
+
+![scan, previous model, corrected model](verification/revised_v3_outlet_before_after.png)
+
+**What was wrong.** The scan has two openings at the burned end: the real outlet, and a hole burned
+through the outside of the elbow. The first three models treated the burned side as the outlet and
+built a straight cuff continuing the tube. On the real part the tube ends in a closed elbow, and the
+outlet is a short round cuff on the inside of the hook that faces back toward the box. The old cuff
+axis was 90 degrees off the real one.
+
+**What v3 does.**
+
+- **Cuff measured from its own walls.** A cylinder fitted to the intact band of the cuff (both wall
+  faces, 2 to 16 mm below the rim) gives 66.0 mm outside, 59.0 mm inside, a 3.5 mm wall, with a fit
+  error of 0.28 mm rms over about 220 degrees of the outside face. The rim is plain (67.8 mm across,
+  no large lip) and sits 24 mm above the crease where the cuff meets the tube.
+- **Elbow from the scan, completed by symmetry.** The elbow is mirror-symmetric about the plane
+  through the cuff axis and the tube (0.56 mm median mismatch where both halves survive), so the
+  intact half restores wall that burned away on the other half.
+- **Burned-through patch refilled.** The hole on the outside of the elbow straddles the mirror
+  plane, so nothing survives there. It is closed with a smooth minimum-bending surface that starts
+  9 mm outside the hole's melted edge.
+- **Cleaned like the rest.** Crust and melted flaps are removed and the elbow is smoothed without
+  changing its size. The wall is 2.5 mm (median 2.6 mm, thinnest 1.6 mm in the crease between the
+  cuff and the tube).
+- **Everything else is revised v2, unchanged.** The model is cut across the tube just before the
+  elbow and the new end is joined there. The step at the join is 0.03 mm (median), 0.34 mm at most.
+
+| rebuilt end vs scan | median | within 1 mm | further than 3 mm |
+|---|---|---|---|
+| tube leading into the elbow | 0.14 mm | 99.8 % | 0 % |
+| elbow body | 0.32 mm | 85 % | 2.2 % |
+| outlet cuff | 0.81 mm | 57 % | 6.3 % |
+
+The cuff numbers are low on purpose: the scanned rim is oval and curled from the heat, and the model
+is round. The STL is watertight, one solid body, 920k triangles, 300 cm³, 372 x 175 x 154 mm.
+
+**Still assumed, not measured:**
+
+1. **Rim tab.** Same tab as before (7 x 10 x 3 mm), placed just under the rim on the side away from
+   the tube. That part of the rim is burned away, so its position comes from photos of the sister part.
+2. **Cuff roundness and diameter.** 66.0 mm is the best-fit circle of a heat-distorted rim. Check it
+   against the rubber boot.
+3. **The refilled patch** on the outside of the elbow is a smooth guess. It touches nothing.
+
+Scripts: `scripts/outlet_v3/run_v3.sh` lists the steps in order. Labeled customer pictures are in
+`customer/revised_v3/`, and the numbers above are in `verification/verification_revised_v3.json`.
+
 ## Revised version (fire damage and contaminants removed)
 
 [`polaris_5439157_outlet_duct_revised.stl`](polaris_5439157_outlet_duct_revised.stl) is a second,
@@ -142,8 +197,9 @@ Before/after: `verification/revised_v2_warp_before_after.png`. Customer screensh
 
 ## Customer check
 
-`customer/` holds annotated screenshots and `customer/message.md` holds a message asking the customer to
-confirm the model and measure the coupler, the cuff length and the tab.
+`customer/revised_v3/` holds the current labeled screenshots, and `customer/message.md` holds the message
+asking the customer to confirm the model and measure the boot, the cuff and the tab. The pictures in
+`customer/`, `customer/revised/` and `customer/revised_v2/` show the earlier, wrong outlet.
 
 ## Printing notes
 
